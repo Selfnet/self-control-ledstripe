@@ -605,7 +605,8 @@ const struct httpd_fsdata_file file_stats_shtml[] = {{file_fade_png, data_stats_
 #define HTTPD_FS_ROOT file_stats_shtml
 */
 
-const struct httpd_fsdata_file file_processes_shtml = {NULL, (char const*)data_processes_shtml, (char const*)data_processes_shtml + 17, sizeof(data_processes_shtml) - 17};
+
+const struct httpd_fsdata_file file_processes_shtml = {0, (char const*)data_processes_shtml, (char const*)data_processes_shtml + 17, sizeof(data_processes_shtml) - 17};
 
 const struct httpd_fsdata_file file_404_html = {&file_processes_shtml, (char const*)data_404_html, (char const*)data_404_html + 10, sizeof(data_404_html) - 10};
 
@@ -626,5 +627,5 @@ const struct httpd_fsdata_file file_fade_png = {&file_tcp_shtml, (char const*)da
 const struct httpd_fsdata_file file_stats_shtml = {&file_fade_png, (char const*)data_stats_shtml, (char const*)data_stats_shtml + 13, sizeof(data_stats_shtml) - 13};
 
 #define HTTPD_FS_ROOT &file_stats_shtml
+#define HTTPD_FS_NUMFILES 10 
 
-#define HTTPD_FS_NUMFILES 10

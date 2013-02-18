@@ -35,9 +35,16 @@ usbprogram: all
 program: all
 		$(STM32FLASH) $(BUILDDIR)/$(PROGRAM).bin $(FLASHLOC)
 
-clean:
+allclean:
 		$(MAKE) -C src $@
 		$(MAKE) -C libs $@
+		rm -f $(BUILDDIR)/$(PROGRAM).elf $(BUILDDIR)/$(PROGRAM).hex $(BUILDDIR)/$(PROGRAM).bin \
+				$(BUILDDIR)/$(PROGRAM).info_elf $(BUILDDIR)/$(PROGRAM).info_size
+		rm -f $(BUILDDIR)/$(PROGRAM).info_code
+		rm -f $(BUILDDIR)/$(PROGRAM).info_symbol
+
+clean:
+		$(MAKE) -C src $@
 		rm -f $(BUILDDIR)/$(PROGRAM).elf $(BUILDDIR)/$(PROGRAM).hex $(BUILDDIR)/$(PROGRAM).bin \
 				$(BUILDDIR)/$(PROGRAM).info_elf $(BUILDDIR)/$(PROGRAM).info_size
 		rm -f $(BUILDDIR)/$(PROGRAM).info_code

@@ -53,7 +53,7 @@
  *
  * This file is part of the uIP TCP/IP stack.
  *
- * $Id: //depot/IAR/auxiliary_arm2_5_xx/TestCode/ST/STM32/STM32F107E_FullTest/STM32F107E/Ethernet/app/uipopt.h#1 $
+ * $Id: //depot/IAR/auxiliary_arm2_5_xx/TestCode/ST/STM32/STM32F107E_FullTest/STM32F107E/Ethernet/uip/uipopt.h#1 $
  *
  */
 
@@ -497,7 +497,6 @@ void uip_log(char *msg);
 
 /** @} */
 /*------------------------------------------------------------------------------*/
-
 
 /**
  * \name Appication specific configurations

@@ -58,7 +58,7 @@
 #include "uip.h"
 #include "httpd.h"
 #include "httpd-fs.h"
-//#include "httpd-cgi.h"
+#include "httpd-cgi.h"
 #include "http-strings.h"
 
 #include <string.h>
@@ -143,8 +143,8 @@ PT_THREAD(handle_script(struct httpd_state *s))
 	httpd_fs_open(s->scriptptr + 1, &s->file);
 	PT_WAIT_THREAD(&s->scriptpt, send_file(s));
       } else {
-	//PT_WAIT_THREAD(&s->scriptpt,
-	//	       httpd_cgi(s->scriptptr)(s, s->scriptptr));
+	PT_WAIT_THREAD(&s->scriptpt,
+		       httpd_cgi(s->scriptptr)(s, s->scriptptr));
       }
       next_scriptstate(s);
 
