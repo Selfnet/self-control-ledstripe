@@ -153,76 +153,62 @@ void uip_log (char *m)
 
 uint32_t uIPMain(void)
 {
+  uint32_t i;
+  uip_ipaddr_t ipaddr;
+  struct timer periodic_timer, arp_timer;
 
-
-uint32_t i;
-uip_ipaddr_t ipaddr;
-struct timer periodic_timer, arp_timer;
-
-LED_On(2);
+  LED_On(2);
 
   // Sys timer init 1/100 sec tick
   clock_init(2);
 
-
-
   timer_set(&periodic_timer, CLOCK_SECOND / 2);
   timer_set(&arp_timer, CLOCK_SECOND * 10);
-
-
 
   // Initialize the ethernet device driver
   // Init MAC
   // Phy network negotiation
-  tapdev_init();
-
-
-
-
+  tapdev_init(); // ENET_TxDscrInit (ethernet.c) & ENET_RxDscrInit (ethernet.c) &  ETH_Start (stm32_eth.c)
 
   // uIP web server
   // Initialize the uIP TCP/IP stack.
-  uip_init();
-
-
+  uip_init(); // (uip.c)
 
   // Init WEB server
   uip_ipaddr(ipaddr, 192,168,0,114);
-  printf("IP Address: 192.168.0.114\n\r");
-  uip_sethostaddr(ipaddr);
+  //printf("IP Address: 192.168.0.114\n\r");
+  uip_sethostaddr(ipaddr); //ip
   uip_ipaddr(ipaddr, 192,168,0,1);
-  uip_setdraddr(ipaddr);
+  uip_setdraddr(ipaddr);  //gw
   uip_ipaddr(ipaddr, 255,255,255,0);
-  uip_setnetmask(ipaddr);
+  uip_setnetmask(ipaddr); //nm
 
-
-
+  LED_Off(2);
 
   // Initialize the HTTP server.
   uip_listen(HTONS(80));
 
-//LED_On(1);
 
   // Run WEB server and wait any key for exit
   while(1)
   {
     uip_len = tapdev_read(uip_buf);
-    if(uip_len > 0)
+    if(uip_len > 0) //read input
     {
-      if(BUF->type == htons(UIP_ETHTYPE_IP))
+      if(BUF->type == htons(UIP_ETHTYPE_IP)) //Layer3?
       {
-	      uip_arp_ipin();
+	      uip_arp_ipin(); 
 	      uip_input();
 	      /* If the above function invocation resulted in data that
 	         should be sent out on the network, the global variable
 	         uip_len is set to a value > 0. */
 	      if(uip_len > 0)
-        {
-	        uip_arp_out();
+          {
+	        uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
 	        tapdev_send(uip_buf,uip_len);
 	      }
       }
-      else if(BUF->type == htons(UIP_ETHTYPE_ARP))
+      else if(BUF->type == htons(UIP_ETHTYPE_ARP)) //Layer2?
       {
         uip_arp_arpin();
 	      /* If the above function invocation resulted in data that
@@ -234,21 +220,22 @@ LED_On(2);
 	      }
       }
     }
-    else if(timer_expired(&periodic_timer))
+    else if(timer_expired(&periodic_timer)) //check if there is data in the send queue of each connection and send it
     {
       timer_reset(&periodic_timer);
       for(i = 0; i < UIP_CONNS; i++)
       {
-      	uip_periodic(i);
+      	uip_periodic(i); //sets uip_conn to the current connections (macro uip.h)
         /* If the above function invocation resulted in data that
            should be sent out on the network, the global variable
            uip_len is set to a value > 0. */
         if(uip_len > 0)
         {
-          uip_arp_out();
+          uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
           tapdev_send(uip_buf,uip_len);
         }
       }
+
 #if UIP_UDP
       for(i = 0; i < UIP_UDP_CONNS; i++) {
         uip_udp_periodic(i);
@@ -256,12 +243,14 @@ LED_On(2);
            should be sent out on the network, the global variable
            uip_len is set to a value > 0. */
         if(uip_len > 0) {
-          uip_arp_out();
+          uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
           tapdev_send();
         }
       }
 #endif /* UIP_UDP */
+      
       /* Call the ARP timer function every 10 seconds. */
+      /* It updates the arp-table (removes old entries) */
       if(timer_expired(&arp_timer))
       {
         timer_reset(&arp_timer);
@@ -269,7 +258,7 @@ LED_On(2);
       }
     }
 
-    if(Button_GetState(1) == KEY_PRESSED)
+    if(Button_GetState(1) == KEY_PRESSED) //exit
     {
       LED_On(1);
       break;
@@ -470,7 +459,7 @@ void tapdev_send(void *pPacket, uint32_t size)
   ETH->DMATPDR = 1;
 }
 
-#if 1
+#if 0
 uint16_t PhyRead (uint8_t PhyAddr, uint8_t Reg)
 {
   

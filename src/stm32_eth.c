@@ -487,17 +487,12 @@ void ETH_StructInit(ETH_InitTypeDef* ETH_InitStruct)
   */
 void ETH_Start(void)
 {
-
-GPIOC->BRR = GPIO_Pin_6;//gruen
-
   /* Enable transmit state machine of the MAC for transmission on the MII */  
   ETH_MACTransmissionCmd(ENABLE);
   /* Flush Transmit FIFO */
   ETH_FlushTransmitFIFO();
   /* Enable receive state machine of the MAC for reception from the MII */  
   ETH_MACReceptionCmd(ENABLE);
- 
-GPIOC->BRR = GPIO_Pin_7;//orange
  
   /* Start DMA transmission */
   ETH_DMATransmissionCmd(ENABLE); 
