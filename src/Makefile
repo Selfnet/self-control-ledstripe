@@ -21,12 +21,8 @@ include ../Makefile.common
 
 OBJS+=clock-arch.o
 OBJS+=ethernet.o
-OBJS+=httpd.o
-OBJS+=httpd-cgi.o
-OBJS+=httpd-fs.o
-#OBJS+=httpd-fsdata.o
-OBJS+=http-strings.o
 OBJS+=io-helper.o
+OBJS+=tcp_app.o
 OBJS+=main.o
 OBJS+=psock.o
 OBJS+=startup.o

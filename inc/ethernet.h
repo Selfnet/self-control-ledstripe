@@ -27,7 +27,8 @@
 #include "uip_arp.h"
 #include "uip.h"
 #include "tapdev.h"
-#include "httpd.h"
+//#include "httpd.h"
+#include "tcp_app.h"
 
 #include "io-helper.h"
 

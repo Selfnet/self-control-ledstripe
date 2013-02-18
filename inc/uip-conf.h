@@ -146,10 +146,11 @@ typedef unsigned short uip_stats_t;
 /*#include "smtp.h"*/
 /*#include "hello-world.h"*/
 /*#include "telnetd.h"*/
-#include "webserver.h"
+//#include "webserver.h"
 /*#include "dhcpc.h"*/
 /*#include "resolv.h"*/
 /*#include "webclient.h"*/
+#include "tcp_app.h"
 
 #endif /* __UIP_CONF_H__ */
 

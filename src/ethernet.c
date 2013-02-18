@@ -199,7 +199,6 @@ LED_On(2);
 
 
   // Initialize the HTTP server.
-  //httpd_init();
   uip_listen(HTONS(80));
 
 //LED_On(1);

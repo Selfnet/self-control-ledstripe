@@ -49,8 +49,8 @@ INCLUDE+=-I$(STMUTIL)/stm3210c_eval
 # default settings for release version: COMMONFLAGS=-O3 -g -mcpu=cortex-m3 -mthumb
 # default settings for debug version: COMMONFLAGS=-O0 -g -mcpu=cortex-m3 -mthumb
 # option -Werror treats all warnings as errors 
-#COMMONFLAGS=-O3 -g -mcpu=cortex-m3 -mthumb
-COMMONFLAGS=-O0 -g -mcpu=cortex-m3 -mthumb
+COMMONFLAGS=-O3 -g -mcpu=cortex-m3 -mthumb
+#COMMONFLAGS=-O0 -g -mcpu=cortex-m3 -mthumb
 CFLAGS+=$(COMMONFLAGS) -Wall $(INCLUDE)
 #Adust the following line to the type of MCU used and stdt lib components
 #Adust the following line to the type of MCU used and stdt lib components
