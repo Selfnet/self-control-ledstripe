@@ -30,9 +30,14 @@ PT_THREAD(handle_input(struct tcp_test_app_state *s))
 
   PSOCK_READTO(&s->sin, ISO_nl);
   
+  s->state = STATE_WAITING;
+  
   if(strncmp(s->inputbuf, "ON", 2) == 0) {
     LED_On(1);
 //    PSOCK_CLOSE_EXIT(&s->sin);
+  }
+  else if(strncmp(s->inputbuf, "OFF", 3) == 0) {
+    LED_Off(1);
   }
   else
   {
