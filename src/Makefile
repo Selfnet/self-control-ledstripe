@@ -19,20 +19,13 @@ include ../Makefile.common
 #OBJS+=syscalls.o
 
 
-OBJS+=clock-arch.o
 OBJS+=ethernet.o
 OBJS+=io-helper.o
 OBJS+=tcp_app.o
 OBJS+=main.o
-OBJS+=psock.o
 OBJS+=startup.o
-OBJS+=stm32_eth.o
 OBJS+=stm32f10x_it.o
 OBJS+=syscalls.o
-OBJS+=timer.o
-OBJS+=uip_arp.o
-OBJS+=uip.o
-OBJS+=uiplib.o
 
 all: src
 

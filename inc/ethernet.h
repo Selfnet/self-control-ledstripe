@@ -17,7 +17,7 @@
 
 #include <string.h>
 
-#include "ethernet.h"
+//#include "ethernet.h"
 #include "stm32_eth.h"
 #include "clock-arch.h"
 

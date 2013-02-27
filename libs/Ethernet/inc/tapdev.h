@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2004, Adam Dunkels and the Swedish Institute of
- * Computer Science.
+ * Copyright (c) 2001, Adam Dunkels.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,48 +26,10 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * This file is part of the uIP TCP/IP stack
+ * This file is part of the uIP TCP/IP stack.
  *
- * $Id: //depot/IAR/auxiliary_arm2_5_xx/TestCode/ST/STM32/STM32F107E_FullTest/STM32F107E/Ethernet/uip/uiplib.c#1 $
+ * $Id: //depot/IAR/auxiliary_arm2_5_xx/TestCode/ST/STM32/STM32F107E_FullTest/STM32F107E/Ethernet/app/tapdev.h#1 $
  *
  */
 
-
-#include "uip.h"
-#include "uiplib.h"
-
-
-/*-----------------------------------------------------------------------------------*/
-unsigned char
-uiplib_ipaddrconv(char *addrstr, unsigned char *ipaddr)
-{
-  unsigned char tmp;
-  char c;
-  unsigned char i, j;
-
-  tmp = 0;
-  
-  for(i = 0; i < 4; ++i) {
-    j = 0;
-    do {
-      c = *addrstr;
-      ++j;
-      if(j > 4) {
-	return 0;
-      }
-      if(c == '.' || c == 0) {
-	*ipaddr = tmp;
-	++ipaddr;
-	tmp = 0;
-      } else if(c >= '0' && c <= '9') {
-	tmp = (tmp * 10) + (c - '0');
-      } else {
-	return 0;
-      }
-      ++addrstr;
-    } while(c != '.' && c != 0);
-  }
-  return 1;
-}
-
-/*-----------------------------------------------------------------------------------*/
+#include "ethernet.h"

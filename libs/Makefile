@@ -13,7 +13,19 @@ all: libs
 
 libs: $(LIBS)
 
+
 libstm32-eth.a:
+	@echo -n "Building $@ ..."
+	#@rm $(LIBDIR)/libstm32-eth.a
+	@cd $(LIBDIR)/Ethernet/src && \
+		$(CC) $(CFLAGS) \
+			-I../inc \
+			*.c
+	@$(AR) cr $(LIBDIR)/$@ \
+		$(LIBDIR)/Ethernet/src/*.o
+	@echo "done."
+
+_libstm32-eth.a:
 	@echo -n "Building $@ ..."
 	@cd $(STMLIB)/STM32_ETH_Driver/src && \
 		$(CC) $(CFLAGS) \
