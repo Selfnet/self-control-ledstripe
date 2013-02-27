@@ -21,10 +21,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "includes.h"
 #include "io-helper.h" //dirks button+led func
-//#include <yfuns.h>
-/** @addtogroup Template_Project
-* @{
-*/
+
+
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -35,20 +33,11 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 uint32_t CriticalSecCntr;
-//Int32U CriticalSecCntr;
 USART_InitTypeDef USART_InitStructure;
 
 /* Private function prototypes -----------------------------------------------*/
 
 /* Private functions ---------------------------------------------------------*/
-void my_assert_test(char i) 
-{
-    uint32_t nCount;
-    while(1){
-        LED_Toggle(i);
-        for(nCount = UI32_DELAY_TIME; nCount != 0; nCount--);
-    }
-}
 
 void SysTickStart(uint32_t Tick)
 {
@@ -105,17 +94,6 @@ int Ethernet_Test()
 	/* Get clock PLL3 clock on PA8 pin */
 	RCC_MCOConfig(RCC_MCO_PLL3CLK);
 
-	/* ETHERNET pins configuration */
-	/* AF Output Push Pull:
-	- ETH_MII_MDIO / ETH_RMII_MDIO: PA2
-	- ETH_MII_MDC / ETH_RMII_MDC: PC1
-	- ETH_MII_TXD2: PC2
-	- ETH_MII_TX_EN / ETH_RMII_TX_EN: PB11
-	- ETH_MII_TXD0 / ETH_RMII_TXD0: PB12
-	- ETH_MII_TXD1 / ETH_RMII_TXD1: PB13
-	- ETH_MII_PPS_OUT / ETH_RMII_PPS_OUT: PB5
-	- ETH_MII_TXD3: PB8 */
-
 	/* Configure PA2 as alternate function push-pull */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -140,17 +118,6 @@ int Ethernet_Test()
 	/**************************************************************/
 	/*               For Remapped Ethernet pins                   */
 	/*************************************************************/
-	/* Input (Reset Value):
-	- ETH_MII_CRS CRS: PA0
-	- ETH_MII_RX_CLK / ETH_RMII_REF_CLK: PA1
-	- ETH_MII_COL: PA3
-	- ETH_MII_RX_DV / ETH_RMII_CRS_DV: PD8
-	- ETH_MII_TX_CLK: PC3
-	- ETH_MII_RXD0 / ETH_RMII_RXD0: PD9
-	- ETH_MII_RXD1 / ETH_RMII_RXD1: PD10
-	- ETH_MII_RXD2: PD11
-	- ETH_MII_RXD3: PD12
-	- ETH_MII_RX_ER: PB10 */
 
 	/* ETHERNET pins remapp in STM3210C-EVAL board: RX_DV and RxD[3:0] */
 	GPIO_PinRemapConfig(GPIO_Remap_ETH, DISABLE);
@@ -221,7 +188,7 @@ int Ethernet_Test()
 	ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
 
 	unsigned int PhyAddr;
-	for(PhyAddr = 1; 32 >= PhyAddr; PhyAddr++)
+	for(PhyAddr = 1; 32 >= PhyAddr; PhyAddr++) //bin mir immernoch nicht sicher was das hier macht ^^
 	{
 		if((0x0022 == ETH_ReadPHYRegister(PhyAddr,2))
 			&& (0x1619 == (ETH_ReadPHYRegister(PhyAddr,3)))) break;
@@ -253,9 +220,6 @@ int Ethernet_Test()
 	NVIC_Init(&NVIC_InitStructure);
 	return 0;
 }
-
-//void TIM2_IRQHandler(void)
-//{}
 
 /**
 * @brief  Main program.
@@ -295,7 +259,12 @@ int main(void)
 		}
 	}*/
 	LED_On(2);
-	my_assert_test(1);
+	
+    uint32_t nCount;
+    while(1){
+        //LED_Toggle(1);
+        for(nCount = UI32_DELAY_TIME; nCount != 0; nCount--);
+    }
 }
 
 /**

@@ -1176,6 +1176,7 @@ struct uip_conn {
 			 segment sent. */
 
   /** The application state. */
+  //void * appstate;
   uip_tcp_appstate_t appstate;
 };
 

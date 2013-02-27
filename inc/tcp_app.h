@@ -4,7 +4,7 @@
 #define __TCP_APP_H__
 
 
-#include "psock.h"
+//#include "psock.h"
 
 //die funktion die von uip aufgerufen wird um das eigneltiche zeug zu machen
 
@@ -16,17 +16,18 @@ void tcp_test_appcall(void);
 
 struct tcp_test_app_state {
   unsigned char timer;
-  struct psock sin, sout;
-  struct pt outputpt, scriptpt;
+  //struct psock sin, sout;
+  //struct pt outputpt;
   char inputbuf[50];
+  char outputbuf[50];
   //char filename[20];
-  char state;
+  //char state;
   //struct httpd_fs_file file;
-  int len;
-  char *scriptptr;
-  int scriptlen;
+  //int len;
+  //char *scriptptr;
+  //int scriptlen;
 
-  unsigned short count;
+  //unsigned short count;
 };
 
 typedef struct tcp_test_app_state uip_tcp_appstate_t;

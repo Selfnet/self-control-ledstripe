@@ -13,47 +13,42 @@
 
 
 /*---------------------------------------------------------------------------*/
-static  //TODO make it simple and add to tcp_app
-PT_THREAD(handle_output(struct tcp_test_app_state *s))
+
+static handle_input(struct tcp_test_app_state *s)
 {
-  PSOCK_BEGIN(&s->sout);
-  PSOCK_SEND_STR(&s->sout,"TEST");
-  PSOCK_END(&s->sout);
-}
+    char * tmp = (char *)uip_appdata;
+    //s->inputbuf = uip_appdata;
 
-/*---------------------------------------------------------------------------*/
+    if(strncmp(tmp, "ON", 2) == 0) {
+        LED_On(1);
+        
 
-static  //TODO make it simple
-PT_THREAD(handle_input(struct tcp_test_app_state *s))
-{
-  PSOCK_BEGIN(&s->sin);
 
-  PSOCK_READTO(&s->sin, ISO_nl);
-  
-  s->state = STATE_WAITING;
-  
-  if(strncmp(s->inputbuf, "ON", 2) == 0) {
-    LED_On(1);
-//    PSOCK_CLOSE_EXIT(&s->sin);
-  }
-  else if(strncmp(s->inputbuf, "OFF", 3) == 0) {
-    LED_Off(1);
-  }
-  else
-  {
-    s->state = STATE_OUTPUT;
-  }
-
-  PSOCK_END(&s->sin);
+        
+    }
+    else if(strncmp(tmp, "OFF", 3) == 0) {
+        LED_Off(1);
+    }
+    else if(strncmp(tmp, "TEST", 4) == 0) {
+        if( strlen(s->outputbuf) )
+            LED_Toggle(2);
+    }
+    else
+    {
+    }
 }
 
 static void
 handle_connection(struct tcp_test_app_state *s)
 {
-  handle_input(s); //TODO niy
-  if(s->state == STATE_OUTPUT) {
-    handle_output(s); //TODO niy
+  if( uip_newdata() )
+    handle_input(s);
+  if( strlen(s->outputbuf) > 0 )
+  {
+    uip_send(s->outputbuf , strlen(s->outputbuf) );
+    memset(s->outputbuf, 0, 50);
   }
+    
 }
 
 void tcp_test_appcall(void)
@@ -62,18 +57,18 @@ void tcp_test_appcall(void)
 
   if(uip_closed() || uip_aborted() || uip_timedout()) {
   } else if(uip_connected()) {
-    PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
-    PSOCK_INIT(&s->sout, s->inputbuf, sizeof(s->inputbuf) - 1);
-    PT_INIT(&s->outputpt);
-    s->state = STATE_WAITING;
-    /*    timer_set(&s->timer, CLOCK_SECOND * 100);*/
+    //PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
+    //PSOCK_INIT(&s->sout, s->outputbuf, sizeof(s->outputbuf) - 1);
     s->timer = 0;
+    strcpy(s->outputbuf , "hallo");
+    
     handle_connection(s); //TODO
   } else if(s != 0) {
     if(uip_poll()) {
       ++s->timer;
+      strcpy(s->outputbuf+strlen(s->outputbuf) , "Timer");
       if(s->timer >= 20) {
-	uip_abort();
+	        uip_abort(); //TimeOut
       }
     } else {
       s->timer = 0;

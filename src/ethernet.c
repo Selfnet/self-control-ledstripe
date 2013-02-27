@@ -136,21 +136,6 @@ EnetDmaDesc_t EnetDmaRx;
 EnetDmaDesc_t EnetDmaTx;
 
 
-/*************************************************************************
- * Function Name: uip_log
- * Parameters: none
- *
- * Return: none
- *
- * Description: Events loggin
- *
- *************************************************************************/
-void uip_log (char *m)
-{
-  printf("uIP log message: %s\n", m);
-}
-
-
 uint32_t uIPMain(void)
 {
   uint32_t i;
@@ -183,13 +168,12 @@ uint32_t uIPMain(void)
   uip_ipaddr(ipaddr, 255,255,255,0);
   uip_setnetmask(ipaddr); //nm
 
-  LED_Off(2);
+  LED_Off(1);
 
-  // Initialize the HTTP server.
-  uip_listen(HTONS(80));
+  // Initialize the TELNET server.
+  uip_listen(HTONS(23));
 
-
-  // Run WEB server and wait any key for exit
+  uint32_t nCount;
   while(1)
   {
     uip_len = tapdev_read(uip_buf);
@@ -197,27 +181,27 @@ uint32_t uIPMain(void)
     {
       if(BUF->type == htons(UIP_ETHTYPE_IP)) //Layer3?
       {
-	      uip_arp_ipin(); 
-	      uip_input();
-	      /* If the above function invocation resulted in data that
-	         should be sent out on the network, the global variable
-	         uip_len is set to a value > 0. */
-	      if(uip_len > 0)
+          uip_arp_ipin(); 
+          uip_input();
+          /* If the above function invocation resulted in data that
+             should be sent out on the network, the global variable
+             uip_len is set to a value > 0. */
+          if(uip_len > 0)
           {
-	        uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
-	        tapdev_send(uip_buf,uip_len);
-	      }
+              uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
+              tapdev_send(uip_buf,uip_len);
+          }
       }
       else if(BUF->type == htons(UIP_ETHTYPE_ARP)) //Layer2?
       {
-        uip_arp_arpin();
-	      /* If the above function invocation resulted in data that
-	         should be sent out on the network, the global variable
-	         uip_len is set to a value > 0. */
-	      if(uip_len > 0)
-        {
-	        tapdev_send(uip_buf,uip_len);
-	      }
+          uip_arp_arpin();
+          /* If the above function invocation resulted in data that
+             should be sent out on the network, the global variable
+             uip_len is set to a value > 0. */
+          if(uip_len > 0)
+          {
+              tapdev_send(uip_buf,uip_len);
+          }
       }
     }
     else if(timer_expired(&periodic_timer)) //check if there is data in the send queue of each connection and send it
@@ -225,15 +209,15 @@ uint32_t uIPMain(void)
       timer_reset(&periodic_timer);
       for(i = 0; i < UIP_CONNS; i++)
       {
-      	uip_periodic(i); //sets uip_conn to the current connections (macro uip.h)
-        /* If the above function invocation resulted in data that
-           should be sent out on the network, the global variable
-           uip_len is set to a value > 0. */
-        if(uip_len > 0)
-        {
-          uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
-          tapdev_send(uip_buf,uip_len);
-        }
+            uip_periodic(i); //sets uip_conn to the current connections (macro uip.h)
+            /* If the above function invocation resulted in data that
+               should be sent out on the network, the global variable
+               uip_len is set to a value > 0. */
+            if(uip_len > 0)
+            {
+                uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
+                tapdev_send(uip_buf,uip_len);
+            }
       }
 
 #if UIP_UDP
@@ -258,11 +242,22 @@ uint32_t uIPMain(void)
       }
     }
 
-    if(Button_GetState(1) == KEY_PRESSED) //exit
+    if(Button_GetState(1) == KEY_PRESSED)// && uip_connected()) //exit
     {
-      LED_On(1);
-      break;
+      while(Button_GetState(1) == KEY_PRESSED);
+      struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
+      //strcpy(&(s->outputbuf[strlen(s->outputbuf)]) , "hallo, du da! Knopf gedrückt :)");
+      strcpy(s->outputbuf+strlen(s->outputbuf) , "hallo, du da! Knopf gedrückt :)");
+
+      //uip_send(*s->outputbuf , strlen(s->outputbuf) );
+      //memset(&s->outputbuf, 0, 50);
+      
+      LED_Toggle(2);
+      //break;
     }
+
+    
+    
   }
   return(TRUE);
 }
@@ -329,64 +324,10 @@ void ENET_TxDscrInit(void)
 
 void tapdev_init(void)
 {
-#if 0
-uint32_t i;
-  // Put the PHY in reset mode
-  PhyWrite(PHY_ADDR,0, 0x8000);
-  // Delay to assure PHY reset
-  for(i=0; i<0xFFFFF; i++);
-  // Set PHY operation mode
-  PhyWrite(PHY_ADDR,28, 0);
-  // Set PHY operation mode
-  PhyWrite(PHY_ADDR,0, PHY_OPR_MODE);
-  // DMA Init
-  ETH->DMABMR |= (1<<8); /*PBL = 1*/
-  ETH->DMAIER = 0;
-  ETH->DMASR = 0x0001E7FF;
-  ETH->DMAOMR = (1<<20); // flush TX FIFO
-  //__no_operation();
-  //__no_operation();
-  uint32_t nCount;
-  for(nCount = 0x0FFFFF; nCount != 0; nCount--);
-  
-  while(ETH->DMAOMR & (1<<20));
-  // MAC init
-  ETH->MMCCR |= (1<<3); // freeze statitistic
-  //ETH->MACCR_bit.APCS = 1; // automatily padding
-  //ETH->MACCR_bit.IPCO = 1; // calculate CRC on RX data
-  ETH->MACCR = (1<<11) |   // Full duplex
-               (1<<14);   // 100 Mb
-
-  ETH->MACFFR = (1<<4) |  // Pass all multicast
-                (3<<6);   // Cotrol packets
-
- // ETH->MACFFR_bit.RA  = 1; // Pass all
- // ETH->MACFFR_bit.PM  = 1; // Pass all
-
-  ETH->MACFCR = 0;     // Flow control (pause)
-  ETH->MACVLANTR = 0;  // VLAN
-  ETH->MACPMTCSR = 0;  // Power control
-  ETH->MACIMR    = 0;  // disable interrupts
-
-  ETH->MACA0HR   = (UIP_ETHADDR5 << 8) + UIP_ETHADDR4;
-  ETH->MACA0LR   = (uint32_t)(UIP_ETHADDR3 << 24) +\
-                          (UIP_ETHADDR2 << 16) +\
-                          (UIP_ETHADDR1 << 8)  +\
-                           UIP_ETHADDR0;
-  ETH->MACA1HR = 0x0000FFFF;  // disable seccond mac address
-  ETH->MACA2HR = 0x0000FFFF;
-  ETH->MACA3HR = 0x0000FFFF;
-#endif
   ENET_TxDscrInit();
   ENET_RxDscrInit();
 
   ETH_Start();
-/* ETH->DMARPDR = 1;
-  ETH->MACCR |= (1<<2) |
-                (1<<3);
-  
-  ETH->DMAOMR |= (1<<1) |
-                 (1<<13);*/
 }
 
 /*************************************************************************
@@ -459,25 +400,4 @@ void tapdev_send(void *pPacket, uint32_t size)
   ETH->DMATPDR = 1;
 }
 
-#if 0
-uint16_t PhyRead (uint8_t PhyAddr, uint8_t Reg)
-{
-  
-  ETH->MACMIIAR = (1<<0) |
-                  (0<<1) |
-                  (Reg<<6) |
-                  (PhyAddr<<11);
-  while(ETH->MACMIIAR & (1<<0));
-  return(ETH->MACMIIDR & (0xFFFF));
-}
 
-void PhyWrite (uint8_t PhyAddr, uint8_t Reg, uint16_t Data)
-{
-  ETH->MACMIIDR = Data;
-  ETH->MACMIIAR = (1<<0) |
-                  (1<<1) |
-                  (Reg<<6) |
-                  (PhyAddr<<11);
-  while(ETH->MACMIIAR & (1<<0));
-}
-#endif
