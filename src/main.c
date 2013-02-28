@@ -238,6 +238,8 @@ int main(void)
 	/* Setup STM32 system (clock, PLL and Flash configuration) */
 	SystemInit();
 
+    CAN_Config();
+
 	/* Add your application code here
 	*/
 

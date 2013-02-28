@@ -26,6 +26,7 @@ OBJS+=main.o
 OBJS+=startup.o
 OBJS+=stm32f10x_it.o
 OBJS+=syscalls.o
+OBJS+=can.o
 
 all: src
 
