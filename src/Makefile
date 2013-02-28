@@ -28,6 +28,14 @@ OBJS+=stm32f10x_it.o
 OBJS+=syscalls.o
 OBJS+=can.o
 
+
+
+OBJS+=usb/usbd_cdc_vcp.o
+OBJS+=usb/usbd_desc.o
+OBJS+=usb/usbd_usr.o
+OBJS+=usb/usb_bsp.o
+OBJS+=usb/system_stm32f10x.o
+
 all: src
 
 src: app.a
@@ -35,6 +43,16 @@ src: app.a
 app.a: $(OBJS)
 		$(AR) cr app.a $(OBJS)
 
+app2.a:
+	@echo -n "Building $@ ..."
+	$(CC) $(CFLAGS) \
+		*.c \
+		usb/*.c
+	$(AR) cr app.a *.o usb/*.o
+	@echo "done."
+
+
 .PHONY: src clean
 clean:
-		rm -f app.a $(OBJS)
+		rm -f *.o
+		rm -f app.a

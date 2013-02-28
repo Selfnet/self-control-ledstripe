@@ -72,7 +72,7 @@ void WEAK USART2_IRQHandler(void);
 void WEAK USART3_IRQHandler(void);
 void WEAK EXTI15_10_IRQHandler(void);
 void WEAK RTCAlarm_IRQHandler(void);
-void WEAK USBWakeUp_IRQHandler(void);
+void WEAK USB_FS_WKUP_IRQHandler(void);
 void WEAK TIM8_BRK_IRQHandler(void);
 void WEAK TIM8_UP_IRQHandler(void);
 void WEAK TIM8_TRG_COM_IRQHandler(void);
@@ -90,6 +90,14 @@ void WEAK DMA2_Channel1_IRQHandler(void);
 void WEAK DMA2_Channel2_IRQHandler(void);
 void WEAK DMA2_Channel3_IRQHandler(void);
 void WEAK DMA2_Channel4_5_IRQHandler(void);
+void WEAK DMA2_Channel5_IRQHandler(void);
+void WEAK ETH_IRQHandler(void);
+void WEAK ETH_WKUP_IRQHandler(void);        
+void WEAK CAN2_TX_IRQHandler(void);      
+void WEAK CAN2_RX0_IRQHandler(void);      
+void WEAK CAN2_RX1_IRQHandler(void);        
+void WEAK CAN2_SCE_IRQHandler(void);       
+void WEAK OTG_FS_IRQHandler(void);   
 
 __attribute__ ((section(".isr_vectors")))
 void (* const g_pfnVectors[])(void) = {
@@ -153,7 +161,7 @@ void (* const g_pfnVectors[])(void) = {
 	USART3_IRQHandler, /* USART3 */
 	EXTI15_10_IRQHandler, /* EXTI Line 15..10 */
 	RTCAlarm_IRQHandler, /* RTC Alarm through EXTI Line */
-	USBWakeUp_IRQHandler, /* USB Wakeup from suspend */
+	USB_FS_WKUP_IRQHandler, /* USB Wakeup from suspend */
 	TIM8_BRK_IRQHandler,
 	TIM8_UP_IRQHandler,
 	TIM8_TRG_COM_IRQHandler,
@@ -171,6 +179,14 @@ void (* const g_pfnVectors[])(void) = {
 	DMA2_Channel2_IRQHandler,
 	DMA2_Channel3_IRQHandler,
 	DMA2_Channel4_5_IRQHandler,
+	DMA2_Channel5_IRQHandler,  
+    ETH_IRQHandler,             
+    ETH_WKUP_IRQHandler,        
+    CAN2_TX_IRQHandler,        
+    CAN2_RX0_IRQHandler,      
+    CAN2_RX1_IRQHandler,        
+    CAN2_SCE_IRQHandler,       
+    OTG_FS_IRQHandler,
 	0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0,
@@ -178,8 +194,6 @@ void (* const g_pfnVectors[])(void) = {
 	0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0,
-	0, 0, 0,
 	(intfunc)0xF1E0F85F /* @0x1E0. This is for boot in RAM mode for STM32F10x High Density devices. */
 };
 
@@ -275,6 +289,15 @@ void Reset_Handler(void) {
 #pragma weak DMA2_Channel2_IRQHandler = Default_Handler
 #pragma weak DMA2_Channel3_IRQHandler = Default_Handler
 #pragma weak DMA2_Channel4_5_IRQHandler = Default_Handler
+#pragma weak DMA2_Channel5_IRQHandler = Default_Handler
+#pragma weak ETH_IRQHandler = Default_Handler
+#pragma weak ETH_WKUP_IRQHandler = Default_Handler
+#pragma weak CAN2_TX_IRQHandler = Default_Handler 
+#pragma weak CAN2_RX0_IRQHandler = Default_Handler   
+#pragma weak CAN2_RX1_IRQHandler = Default_Handler  
+#pragma weak CAN2_SCE_IRQHandler = Default_Handler    
+#pragma weak OTG_FS_IRQHandler = Default_Handler
+
 
 void Default_Handler(void) {
 	while (1) {}

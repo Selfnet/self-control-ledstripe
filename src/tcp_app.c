@@ -17,7 +17,10 @@
 static handle_input(struct tcp_test_app_state *s)
 {
     char * tmp = (char *)uip_appdata;
+    int    len = uip_len;
     //s->inputbuf = uip_appdata;
+
+    VCP_DataTx(tmp, len );
 
     if(strncmp(tmp, "can", 2) == 0)
     {
@@ -66,7 +69,7 @@ static handle_input(struct tcp_test_app_state *s)
     if( RxMessage.Data[0] == 0xaa )
         strcpy(s->outputbuf , "tut!");
         //LED_Toggle(2);    
-    
+    memset(&s->outputbuf, 0, 50);
 }
 
 static void

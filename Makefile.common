@@ -5,7 +5,7 @@ BUILDDIR=$(TOP)/build
 LIBDIR=$(TOP)/libs
 #Adust the following line to the library in use
 STMLIB=$(LIBDIR)/STM32F10x_StdPeriph_Lib_V3.5.0/Libraries
-STMUTIL=$(LIBDIR)/STM32F10x_StdPeriph_Lib_V3.5.0/Utilities/STM32_EVAL
+STMUTIL=$(LIBDIR)/STM32F10x_StdPeriph_Lib_V3.5.0/Utilities
 
 TCPREFIX = $(TOP)/../gnu-gcc-arm/gnu-toolchain/bin/
 TC=$(TCPREFIX)arm-none-eabi-
@@ -24,20 +24,16 @@ FLASHLOC = 0x08000000
 
 # project specific
 INCLUDE=-I$(TOP)/inc
-
-# stmlib 3.6.1 from USB-FS lib (new folder structure?)
-#INCLUDE+=-I$(STMLIB)/CMSIS/Include
-#INCLUDE+=-I$(STMLIB)/CMSIS/Device/ST/STM32F10x/Include
-#INCLUDE+=-I$(STMLIB)/CMSIS/Device/ST/STM32F10x/Source/Templates
-#INCLUDE+=-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc
+INCLUDE+=-I$(TOP)/inc/usb
+INCLUDE+=-I$(TOP)/inc/eth
 
 # includes for stmlib 3.5.0 w/o USB
 INCLUDE+=-I$(STMLIB)/CMSIS/CM3/CoreSupport
 INCLUDE+=-I$(STMLIB)/CMSIS/CM3/DeviceSupport/ST/STM32F10x
 INCLUDE+=-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc
-INCLUDE+=-I$(STMUTIL)
-INCLUDE+=-I$(STMUTIL)/Common
-INCLUDE+=-I$(STMUTIL)/stm3210c_eval
+INCLUDE+=-I$(STMLIB)/STM32_USB_OTG_Driver/inc
+INCLUDE+=-I$(STMLIB)/STM32_USB_Device_Library/Core/inc
+INCLUDE+=-I$(STMLIB)/STM32_USB_Device_Library/Class/cdc/inc
 
 
 #Compiler optimize settings:
@@ -54,6 +50,7 @@ COMMONFLAGS=-Os -g -mcpu=cortex-m3 -mthumb
 CFLAGS+=$(COMMONFLAGS) -Wall $(INCLUDE)
 #Adust the following line to the type of MCU used and stdt lib components
 #Adust the following line to the type of MCU used and stdt lib components
-CFLAGS+=-D STM32F10X_CL -DUSE_STM3210C_EVAL -DUSE_STDPERIPH_DRIVER
+CFLAGS+=-D STM32F10X_CL -DUSE_STDPERIPH_DRIVER
 CFLAGS+=-D VECT_TAB_FLASH
+CFLAGS+=-D USE_USB_OTG_FS
 

@@ -8,6 +8,7 @@ LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -L$(L
 LDLIBS+=-lm
 LDLIBS+=-lstm32
 LDLIBS+=-lstm32-eth
+LDLIBS+=-lusbfs
 
 all: libs src
 		$(CC) -o $(BUILDDIR)/$(PROGRAM).elf $(LDFLAGS) \

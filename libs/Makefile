@@ -1,13 +1,8 @@
 include ../Makefile.common
 LIBS+=libstm32.a
-#LIBS+=libstm32-eth.a
+LIBS+=libstm32-eth.a
+LIBS+=libusbfs.a
 CFLAGS+=-c
-
-
-#INCLUDE+=-l$(STMUTIL)/STM32_EVAL/
-#INCLUDE+=-l$(STMUTIL)/STM32_EVAL/Common
-#INCLUDE+=-l$(STMUTIL)/STM32_EVAL/STM3210C_EVAL
-
 
 all: libs
 
@@ -25,15 +20,30 @@ libstm32-eth.a:
 		$(LIBDIR)/Ethernet/src/*.o
 	@echo "done."
 
-_libstm32-eth.a:
-	@echo -n "Building $@ ..."
-	@cd $(STMLIB)/STM32_ETH_Driver/src && \
+
+libusbfs.a:
+	@echo -n "compiling source for $@ ..."
+	cd $(STMLIB)/STM32_USB_Device_Library/Core/src && \
 		$(CC) $(CFLAGS) \
-			-I../inc \
 			*.c
-	@$(AR) cr $(LIBDIR)/$@ \
-		$(STMLIB)/STM32_ETH_Driver/src/*.o
+			
+	cd $(STMLIB)/STM32_USB_Device_Library/Class/cdc/src/ &&\
+		$(CC) $(CFLAGS) \
+			usbd_cdc_core.c
+			
+	cd $(STMLIB)/STM32_USB_OTG_Driver/src && \
+		$(CC) $(CFLAGS) \
+			usb_core.c \
+			usb_dcd.c \
+			usb_dcd_int.c
+		
+	@echo -n "Building lib $@ ..."
+	$(AR) cr $(LIBDIR)/$@ \
+		$(STMLIB)/STM32_USB_Device_Library/Core/src/*.o \
+		$(STMLIB)/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_core.o \
+		$(STMLIB)/STM32_USB_OTG_Driver/src/*.o
 	@echo "done."
+
 
 libstm32.a:
 	@echo -n "Building $@ ..."
@@ -50,33 +60,7 @@ libstm32.a:
 			-I../../CMSIS/CM3/DeviceSupport/ST/STM32F10x \
 			-I../inc \
 			*.c
-	@cd $(STMUTIL) && \
-		$(CC) $(CFLAGS) \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/CMSIS/CM3/CoreSupport \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/CMSIS/CM3/DeviceSupport/ST/STM32F10x \
-			-I$(STMUTIL) \
-			-I$(STMUTIL)/stm3210c_eval \
-			-I$(STMUTIL)/Common \
-			stm32_eval.c
-	@cd $(STMUTIL)/stm3210c_eval && \
-		$(CC) $(CFLAGS) \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/CMSIS/CM3/CoreSupport \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/CMSIS/CM3/DeviceSupport/ST/STM32F10x \
-			-I$(STMUTIL) \
-			-I$(STMUTIL)/stm3210c_eval \
-			-I$(STMUTIL)/Common \
-			*.c
-	@cd $(STMUTIL)/Common && \
-		$(CC) $(CFLAGS) \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/CMSIS/CM3/CoreSupport \
-			-I$(STMLIB)/STM32F10x_StdPeriph_Driver/CMSIS/CM3/DeviceSupport/ST/STM32F10x \
-			-I$(STMUTIL) \
-			-I$(STMUTIL)/stm3210c_eval \
-			-I$(STMUTIL)/Common \
-			fonts.c
+
 
 #@cd $(STMLIB)/STM32_USB-FS-Device_Driver/src && \
 #	$(CC) $(CFLAGS) \
@@ -89,8 +73,8 @@ libstm32.a:
 		$(STMLIB)/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.o \
 		$(STMLIB)/CMSIS/CM3/CoreSupport/core_cm3.o \
 		$(STMLIB)/STM32F10x_StdPeriph_Driver/src/*.o \
-		$(STMUTIL)/stm3210c_eval/*.o \
-		$(STMUTIL)/Common/fonts.o \
+		#$(STMUTIL)/stm3210c_eval/*.o \
+		#$(STMUTIL)/Common/fonts.o \
 #		$(STMUTIL)/stm32_eval.o
 #$(STMLIB)/STM32_USB-FS-Device_Driver/src/*.o
 	@echo "done."
@@ -104,6 +88,16 @@ clean:
 	rm -f $(STMUTIL)/stm3210c_eval/*.o
 	rm -f $(STMUTIL)/stm32_eval.o
 	rm -f $(STMUTIL)/Common/fonts.o
+	
+	rm -f $(STMLIB)/STM32_USB_Device_Library/Core/src/*.o
+	rm -f $(STMLIB)/STM32_USB_Device_Library/Class/cdc/src/*.o
+	rm -f $(STMLIB)/STM32_USB_Device_Library/Class/audio/src/*.o
+	rm -f $(STMLIB)/STM32_USB_Device_Library/Class/dfu/src/*.o
+	rm -f $(STMLIB)/STM32_USB_Device_Library/Class/hid/src/*.o
+	rm -f $(STMLIB)/STM32_USB_Device_Library/Class/msc/src/*.o
+	rm -f $(STMLIB)/STM32_USB_OTG_Driver/src/*.o
+	
+	
 	rm -f $(STMLIB)/STM32_ETH_Driver/src/*.o
 #rm -f $(STMLIB)/STM32_USB-FS-Device_Driver/src/*.o
 	rm -f $(LIBS)

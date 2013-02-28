@@ -71,7 +71,6 @@
   void assert_failed(uint8_t* file, uint32_t line);
 #else
   #define assert_param(expr) ((void)0)
-    void my_assert_test(char);
 //    #define assert_param(expr) ((expr) ? (void)0 : my_assert_test(1))
 #endif /* USE_FULL_ASSERT */
 

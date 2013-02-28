@@ -30,6 +30,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x.h"
 
+#include "usb_conf.h"
+
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
@@ -45,6 +47,8 @@ void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
 void TIM3_IRQHandler(void);
+
+void OTG_FS_WKUP_IRQHandler(void);
 
 #ifdef __cplusplus
 }

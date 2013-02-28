@@ -268,7 +268,7 @@ uint32_t uIPMain(void)
         RxMessage.Data[0]=0x00;
         RxMessage.Data[1]=0x00;
         CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-        
+               
         if( RxMessage.Data[0] == 0xaa )
             LED_Toggle(2);
         LED_Toggle(1);
