@@ -173,6 +173,7 @@ uint32_t uIPMain(void)
   // Initialize the TELNET server.
   uip_listen(HTONS(23));
 
+  CanRxMsg RxMessage;
   uint32_t nCount;
   while(1)
   {
@@ -242,36 +243,49 @@ uint32_t uIPMain(void)
       }
     }
 
-    if(Button_GetState(1) == KEY_PRESSED)// && uip_connected()) //exit
+    
+    RxMessage.StdId=0x00;
+    RxMessage.IDE=CAN_ID_STD;
+    RxMessage.DLC=0;
+    RxMessage.Data[0]=0x00;
+    RxMessage.Data[1]=0x00;
+    CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);   
+    if( RxMessage.StdId == 0x12 )
     {
-      while(Button_GetState(1) == KEY_PRESSED);
-      struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
-      //strcpy(&(s->outputbuf[strlen(s->outputbuf)]) , "hallo, du da! Knopf gedrückt :)");
-      strcpy(s->outputbuf+strlen(s->outputbuf) , "hallo, du da! Knopf gedrückt :)");
+        uint8_t send_string[11];
+        memcpy(send_string+0 , "Can: ", 5);
+        memcpy(send_string+4 , &RxMessage.StdId, 1);
+        memcpy(send_string+5 , ",", 1);
+        memcpy(send_string+6 , &RxMessage.Data[0], 1);
+        memcpy(send_string+7 , ",", 1);
+        memcpy(send_string+8 , &RxMessage.Data[1], 1);
+        memcpy(send_string+9 , "\n",1);
+        send_string[10] = 0x0;
+        VCP_DataTx(send_string, 10);
+    }
 
-      //uip_send(*s->outputbuf , strlen(s->outputbuf) );
-      //memset(&s->outputbuf, 0, 50);
-      
-      LED_Toggle(2);
-      //break;
+    if(Button_GetState(1) == KEY_PRESSED)
+    {
+        while(Button_GetState(1) == KEY_PRESSED);
+
+        CanTxMsg TxMessage;
+        TxMessage.StdId=0x11;
+        TxMessage.RTR=CAN_RTR_DATA;
+        TxMessage.IDE=CAN_ID_STD;
+        TxMessage.DLC=2; //0 - 8
+        TxMessage.Data[0]=1;
+        TxMessage.Data[1]=3;
+        LED_Toggle(1);
+        CAN_Transmit(CAN1, &TxMessage);      
     }
 
     if(Button_GetState(2) == KEY_PRESSED)
     {
         while(Button_GetState(2) == KEY_PRESSED);
-        // CAN zeugs
-        CanRxMsg RxMessage;
-        // receive
-        RxMessage.StdId=0x00;
-        RxMessage.IDE=CAN_ID_STD;
-        RxMessage.DLC=0;
-        RxMessage.Data[0]=0x00;
-        RxMessage.Data[1]=0x00;
-        CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-               
-        if( RxMessage.Data[0] == 0xaa )
-            LED_Toggle(2);
-        LED_Toggle(1);
+        uint8_t send_string[50];
+        strcpy(send_string   , "USB-Test");
+        VCP_DataTx(send_string, strlen(send_string));
+        LED_Toggle(2);
     }
     
   }

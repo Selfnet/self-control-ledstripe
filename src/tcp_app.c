@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "usbd_cdc_vcp.h"
 
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
@@ -14,7 +15,7 @@
 
 /*---------------------------------------------------------------------------*/
 
-static handle_input(struct tcp_test_app_state *s)
+static void handle_input(struct tcp_test_app_state *s)
 {
     char * tmp = (char *)uip_appdata;
     int    len = uip_len;
@@ -22,54 +23,50 @@ static handle_input(struct tcp_test_app_state *s)
 
     VCP_DataTx(tmp, len );
 
-    if(strncmp(tmp, "can", 2) == 0)
+    //BSP:
+    //Idx: 0123456789012
+    //Str: SEND LED 1 ON
+    if(strncmp(tmp, "SEND", 4) == 0 && len > 10)
     {
-        // CAN zeugs
         CanTxMsg TxMessage;
-
         TxMessage.StdId=0x11;
         TxMessage.RTR=CAN_RTR_DATA;
         TxMessage.IDE=CAN_ID_STD;
         TxMessage.DLC=2; //0 - 8
-        TxMessage.Data[0]=0xaa;
-        TxMessage.Data[1]=0xaa;
-        // 2..7
+        TxMessage.Data[0]=0x00;
+        TxMessage.Data[1]=0x00;
+        if(strncmp(tmp+5, "LED", 3) == 0)
+        {
+            if(strncmp(tmp+9, "1", 1) == 0)
+                TxMessage.Data[0]=1;
+            else
+                TxMessage.Data[0]=2;
+            
+            if(strncmp(tmp+11, "ON", 2) == 0)
+                TxMessage.Data[1]=1;
+            else if(strncmp(tmp+11, "OFF", 3) == 0)
+                TxMessage.Data[1]=2;
+            else
+                TxMessage.Data[1]=3;
+        }
+        LED_Toggle(2);
         CAN_Transmit(CAN1, &TxMessage);
         
-        LED_Toggle(1);
-    }
-    else if(strncmp(tmp, "ON", 2) == 0)
-    {
-        LED_On(1);
-    }
-    else if(strncmp(tmp, "OFF", 3) == 0)
-    {
-        LED_Off(1);
-    }
-    else if(strncmp(tmp, "TEST", 4) == 0)
-    {
-        if( strlen(s->outputbuf) )
-            LED_Toggle(2);
+        uint8_t send_string[11];
+        memcpy(send_string+0 , "Can: ", 5);
+        memcpy(send_string+4 , &TxMessage.StdId, 1);
+        memcpy(send_string+5 , ",", 1);
+        memcpy(send_string+6 , &TxMessage.Data[0], 1);
+        memcpy(send_string+7 , ",", 1);
+        memcpy(send_string+8 , &TxMessage.Data[1], 1);
+        memcpy(send_string+9 , "\n",1);
+        send_string[10] = 0x0;
+        VCP_DataTx(send_string, 10);        
     }
     else
     {
+        LED_Toggle(2);
     }
-    
-    
-    // CAN zeugs
-    CanRxMsg RxMessage;
-    // receive
-    RxMessage.StdId=0x00;
-    RxMessage.IDE=CAN_ID_STD;
-    RxMessage.DLC=0;
-    RxMessage.Data[0]=0x00;
-    RxMessage.Data[1]=0x00;
-    CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-    
-    if( RxMessage.Data[0] == 0xaa )
-        strcpy(s->outputbuf , "tut!");
-        //LED_Toggle(2);    
-    memset(&s->outputbuf, 0, 50);
 }
 
 static void
@@ -80,7 +77,7 @@ handle_connection(struct tcp_test_app_state *s)
   if( strlen(s->outputbuf) > 0 )
   {
     uip_send(s->outputbuf , strlen(s->outputbuf) );
-    memset(s->outputbuf, 0, 50);
+    memset(s->outputbuf, 0, 50); //leeren
   }
     
 }
@@ -94,7 +91,7 @@ void tcp_test_appcall(void)
     //PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
     //PSOCK_INIT(&s->sout, s->outputbuf, sizeof(s->outputbuf) - 1);
     s->timer = 0;
-    strcpy(s->outputbuf , "hallo - bitte canbus anschliesen");
+    strcpy(s->outputbuf , "hallo - bitte can-bus anschliesen");
     
     handle_connection(s); //TODO
   } else if(s != 0) {

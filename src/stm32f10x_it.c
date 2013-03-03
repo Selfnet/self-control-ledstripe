@@ -211,8 +211,10 @@ void OTG_HS_EP1_OUT_IRQHandler(void)
 *******************************************************************************/
 void TIM2_IRQHandler(void)
 {
+#if MAIN_CONTROLLER
 extern  void Tim2Handler (void);
   Tim2Handler();
+#endif
 }
 
 

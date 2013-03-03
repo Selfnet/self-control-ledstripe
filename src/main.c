@@ -65,6 +65,8 @@ void SysTickStop(void)
 	SysTick->CTRL = 0;
 }
 
+#if MAIN_CONTROLLER
+
 int Ethernet_Test()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -229,6 +231,8 @@ int Ethernet_Test()
 	return 0;
 }
 
+#endif //MAIN_CONTROLLER
+
 /**
 * @brief  Main program.
 * @param  None
@@ -251,19 +255,91 @@ int main(void)
 
 
     //uint8_t send_string[] = {RS232_PRE,0,1,2,RS232_POST};
-    uint8_t send_string[] = "Hi,du!";//{"H","i",",","d","u","!"};
+    uint8_t send_string[50];
     USBD_Init(&USB_OTG_dev,     
         USB_OTG_FS_CORE_ID,
         &USR_desc, 
         &USBD_CDC_cb, 
         &USR_cb);
+
     //VCP_DataTx("Hallo!", 6);
 
-	/* Add your application code here
-	*/
+	/* Add your application code here */
 
+#if MAIN_CONTROLLER
+    //Btn1 -> SendCan Led2 Toogle
+    //Btn2 -> 
+    //Ethernet msg format: 'SEND LED X (ON|OFF|xxx)'
+    //Alle can nachrichten werden auf USB ausgegeben
 	Ethernet_Test();
-    
+#else //MAIN_CONTROLLER
+    /*
+        Empfange Can nachrichten:
+            Sender: StdId=0x11
+            Data[0] : LED-Nr. X
+            Data[1] : Action(On/Off/Toggle)
+    */
+    CanRxMsg RxMessage;
+    while(1)
+    {
+        RxMessage.StdId=0x00;
+        RxMessage.IDE=CAN_ID_STD;
+        RxMessage.DLC=0;
+        RxMessage.Data[0]=0x00;
+        RxMessage.Data[1]=0x00;
+        CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
+               
+        if( RxMessage.StdId == 0x11 && ( RxMessage.Data[0] == 0x01 || RxMessage.Data[0] == 0x02 ) )
+        {
+            if(RxMessage.Data[1] == 1) //On
+            {
+                LED_On(RxMessage.Data[0]);
+            }
+            else if(RxMessage.Data[1] == 2) //Off
+            {
+                LED_Off(RxMessage.Data[0]);
+            }
+            else if(RxMessage.Data[1] == 3) //Off
+            {
+                LED_Toggle(RxMessage.Data[0]);
+            }
+            memcpy(send_string+0 , "Can: ", 5);
+            memcpy(send_string+4 , &RxMessage.StdId, 1);
+            memcpy(send_string+5 , ",", 1);
+            memcpy(send_string+6 , &RxMessage.Data[0], 1);
+            memcpy(send_string+7 , ",", 1);
+            memcpy(send_string+8 , &RxMessage.Data[1], 1);
+            memcpy(send_string+9 , "\n",1);
+            send_string[10] = 0x0;
+            VCP_DataTx(send_string, 10); 
+        }
+        
+        if(Button_GetState(1) == KEY_PRESSED)
+        {
+            while(Button_GetState(1) == KEY_PRESSED);
+
+            CanTxMsg TxMessage;
+            TxMessage.StdId=0x12;
+            TxMessage.RTR=CAN_RTR_DATA;
+            TxMessage.IDE=CAN_ID_STD;
+            TxMessage.DLC=2; //0 - 8
+            TxMessage.Data[0]=1;
+            TxMessage.Data[1]=3;
+            LED_Toggle(1);
+            CAN_Transmit(CAN1, &TxMessage);      
+        }
+        
+        if(Button_GetState(2) == KEY_PRESSED)
+        {
+            while(Button_GetState(2) == KEY_PRESSED);
+            memcpy(send_string   , "USB-Test\n" , 9);
+            send_string[9] = 0x0;
+            VCP_DataTx(send_string, 9);
+            LED_Toggle(2);
+        }
+        
+    }
+#endif //MAIN_CONTROLLER
     //STM_EVAL_GPIOReset();
 
 /*	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_OTG_FS | RCC_AHBPeriph_ETH_MAC |
