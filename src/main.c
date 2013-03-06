@@ -49,189 +49,91 @@ __ALIGN_BEGIN USB_OTG_CORE_HANDLE    USB_OTG_dev __ALIGN_END ;
 
 void SysTickStart(uint32_t Tick)
 {
-	RCC_ClocksTypeDef Clocks;
-	volatile uint32_t dummy;
+    RCC_ClocksTypeDef Clocks;
+    volatile uint32_t dummy;
 
-	RCC_GetClocksFreq(&Clocks);
+    RCC_GetClocksFreq(&Clocks);
 
-	dummy = SysTick->CTRL;
-	SysTick->LOAD = (Clocks.HCLK_Frequency/8)/Tick;
+    dummy = SysTick->CTRL;
+    SysTick->LOAD = (Clocks.HCLK_Frequency/8)/Tick;
 
-	SysTick->CTRL = 1;
+    SysTick->CTRL = 1;
 }
 
 void SysTickStop(void)
 {
-	SysTick->CTRL = 0;
+    SysTick->CTRL = 0;
 }
 
 #if MAIN_CONTROLLER
 
 int Ethernet_Test()
 {
-	GPIO_InitTypeDef GPIO_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
-	ETH_InitTypeDef ETH_InitStructure;
+    Ethernet_Init();
 
-	//printf("connect LAN cable and press Enter\n\r");
-	//while('\r' != getchar());
-
-
-	/* Enable ETHERNET clock  */
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_ETH_MAC | RCC_AHBPeriph_ETH_MAC_Tx | RCC_AHBPeriph_ETH_MAC_Rx, ENABLE);
-
-
-	/* Enable GPIOs clocks */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA |	RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC |
-	                        RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE| RCC_APB2Periph_AFIO, ENABLE);
-
-	GPIO_ETH_MediaInterfaceConfig(GPIO_ETH_MediaInterface_RMII);
-
-
-	/* Get HSE clock = 25MHz on PA8 pin(MCO) */
-	/* set PLL3 clock output to 50MHz (25MHz /5 *10 =50MHz) */
-	RCC_PLL3Config(RCC_PLL3Mul_10);
-	/* Enable PLL3 */
-	RCC_PLL3Cmd(ENABLE);
-	
-	/* Wait till PLL3 is ready */
-	while (RCC_GetFlagStatus(RCC_FLAG_PLL3RDY) == RESET)
-	{;}
-
-
-   
-
-	/* Get clock PLL3 clock on PA8 pin */
-	RCC_MCOConfig(RCC_MCO_PLL3CLK);
-
-	/* Configure PA2 as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_Init(GPIOA, &GPIO_InitStructure); //ETH_RMII_MDIO
-
-	/* Configure PC1, PC2 and PC3 as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_Init(GPIOC, &GPIO_InitStructure); //ETH_RMII_MDC
-
-	/* Configure PB5, PB8, PB11, PB12 and PB13 as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin =   GPIO_Pin_11 | //ETH_RMII_TX_EN
-                                	GPIO_Pin_12 | //ETH_RMII_TXD0
-                                	GPIO_Pin_13;  //ETH_RMII_TXD1
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-
-	/**************************************************************/
-	/*               For Remapped Ethernet pins                   */
-	/*************************************************************/
-
-	/* ETHERNET pins remapp in STM3210C-EVAL board: RX_DV and RxD[3:0] */
-	GPIO_PinRemapConfig(GPIO_Remap_ETH, DISABLE);
-
-	/* Configure PA0, PA1 and PA3 as input */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_7 ; //WKUP | ETH_RMII_REF_CLK | ETH_RMII_CRS_DV
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-	/* Configure PB10 as input */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10; // ETH_MII_RX_ER (PB10)
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	/* Configure PC3 as input */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;// ETH_MII_TX_CLK (PC3)
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-	/* Configure PD8, PD9, PD10, PD11 and PD12 as input */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5; //ETH_RMII_RXD0 | ETH_RMII_RXD1
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(GPIOC, &GPIO_InitStructure); /**/
-
-	/* MCO pin configuration------------------------------------------------- */
-	/* Configure MCO (PA8) as alternate function push-pull */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8; // --R17--(R33)--verbunden--> ETH_RMII_REF_CLK
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-
-	/* Reset ETHERNET on AHB Bus */
-	ETH_DeInit();
-
-
-	/* Software reset */
-	ETH_SoftwareReset();
-
-
-	/* Wait for software reset */
-	while(ETH_GetSoftwareResetStatus()==SET)
-	{;}
-
-
-	/* ETHERNET Configuration ------------------------------------------------------*/
-	/* Call ETH_StructInit if you don't like to configure all ETH_InitStructure parameter */
-	ETH_StructInit(&ETH_InitStructure);
-
-	/* Fill ETH_InitStructure parametrs */
-	/*------------------------   MAC   -----------------------------------*/
-	ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Disable  ;
-	//ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
-	ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
-	//ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
-	ETH_InitStructure.ETH_RetryTransmission = ETH_RetryTransmission_Disable;
-	ETH_InitStructure.ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;
-	ETH_InitStructure.ETH_ReceiveAll = ETH_ReceiveAll_Enable;
-	ETH_InitStructure.ETH_BroadcastFramesReception = ETH_BroadcastFramesReception_Disable;
-	ETH_InitStructure.ETH_PromiscuousMode = ETH_PromiscuousMode_Disable;
-	ETH_InitStructure.ETH_MulticastFramesFilter = ETH_MulticastFramesFilter_Perfect;
-	ETH_InitStructure.ETH_UnicastFramesFilter = ETH_UnicastFramesFilter_Perfect;
-	ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
-	ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
-
-	unsigned int PhyAddr;
-	for(PhyAddr = 1; 32 >= PhyAddr; PhyAddr++) //bin mir immernoch nicht sicher was das hier macht ^^
-	{
-		if((0x0022 == ETH_ReadPHYRegister(PhyAddr,2))
-			&& (0x1619 == (ETH_ReadPHYRegister(PhyAddr,3)))) break;
-	}
-
-	if(32 < PhyAddr)
-	{
-		//printf("Ethernet Phy Not Found\n\r");
-		return 1;
-	}
-	
-	/* Configure Ethernet */
-	if(0 == ETH_Init(&ETH_InitStructure, PhyAddr))
-	{
-		//printf("Ethernet Initialization Failed\n\r");
-		return 1;
-	}
-
-	/* uIP stack main loop */
-	uIPMain(); //ethernet.c
+    /* uIP stack main loop */
+    uIPMain(); //ethernet.c
 
     //wenn uIPMain zu ende --> aufräumen
 
-	TIM_DeInit(TIM2);
+    TIM_DeInit(TIM2);
 
-	/* Enable the TIM2 Interrupt */
-	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
-	NVIC_Init(&NVIC_InitStructure);
-	return 0;
+    /* Enable the TIM2 Interrupt */
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
+    NVIC_Init(&NVIC_InitStructure);
+    return 0;
 }
 
 #endif //MAIN_CONTROLLER
+
+void ButtonInit(void)
+{
+    //EXTI structure to init EXT
+    EXTI_InitTypeDef EXTI_InitStructure;
+    //NVIC structure to set up NVIC controller
+    NVIC_InitTypeDef NVIC_InitStructure;
+    //Connect EXTI Line to Button Pin
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOD, GPIO_PinSource0); //PortA.0 --> Btn2 | PortD.0 --> CanRX pin (kein Can Interrupt)
+    //Configure Button EXTI line
+    EXTI_InitStructure.EXTI_Line = EXTI_Line0;
+    //select interrupt mode
+    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    //generate interrupt on rising edge
+    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+    //enable EXTI line
+    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+    //send values to registers
+    EXTI_Init(&EXTI_InitStructure);
+
+
+    //configure NVIC
+    //select NVIC channel to configure
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI0_IRQn;
+    //set priority to lowest
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x0F;
+    //set subpriority to lowest
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0F;
+    //enable IRQ channel
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    //update NVIC registers
+    NVIC_Init(&NVIC_InitStructure);
+
+/*  //Test weise nen haufen scheis anmachen
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn;
+    NVIC_Init(&NVIC_InitStructure);
+
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI2_IRQn;
+    NVIC_Init(&NVIC_InitStructure);
+
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
+    NVIC_Init(&NVIC_InitStructure);
+
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI4_IRQn;
+    NVIC_Init(&NVIC_InitStructure);*/
+}
+
 
 /**
 * @brief  Main program.
@@ -242,104 +144,34 @@ int main(void)
 {
     /* Button Init */
     Button_Init();
+    //ButtonInit(); //interrupt init 
 
     /* LED Init */
     LED_Init();
     LED_On(1);
 
-	/* Setup STM32 system (clock, PLL and Flash configuration) */
-	SystemInit();
-
-    CAN_Config();
-
-
+    /* Setup STM32 system (clock, PLL and Flash configuration) */
+    SystemInit();
 
     //uint8_t send_string[] = {RS232_PRE,0,1,2,RS232_POST};
     uint8_t send_string[50];
-    USBD_Init(&USB_OTG_dev,     
+    USBD_Init(&USB_OTG_dev,
         USB_OTG_FS_CORE_ID,
-        &USR_desc, 
-        &USBD_CDC_cb, 
+        &USR_desc,
+        &USBD_CDC_cb,
         &USR_cb);
 
-    //VCP_DataTx("Hallo!", 6);
+    CAN_Config();
 
-	/* Add your application code here */
+    VCP_DataTx("Hallo!", 6);
 
-#if MAIN_CONTROLLER
+    /* Add your application code here */
+
     //Btn1 -> SendCan Led2 Toogle
     //Btn2 -> 
     //Ethernet msg format: 'SEND LED X (ON|OFF|xxx)'
     //Alle can nachrichten werden auf USB ausgegeben
-	Ethernet_Test();
-#else //MAIN_CONTROLLER
-    /*
-        Empfange Can nachrichten:
-            Sender: StdId=0x11
-            Data[0] : LED-Nr. X
-            Data[1] : Action(On/Off/Toggle)
-    */
-    CanRxMsg RxMessage;
-    while(1)
-    {
-        RxMessage.StdId=0x00;
-        RxMessage.IDE=CAN_ID_STD;
-        RxMessage.DLC=0;
-        RxMessage.Data[0]=0x00;
-        RxMessage.Data[1]=0x00;
-        CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-               
-        if( RxMessage.StdId == 0x11 && ( RxMessage.Data[0] == 0x01 || RxMessage.Data[0] == 0x02 ) )
-        {
-            if(RxMessage.Data[1] == 1) //On
-            {
-                LED_On(RxMessage.Data[0]);
-            }
-            else if(RxMessage.Data[1] == 2) //Off
-            {
-                LED_Off(RxMessage.Data[0]);
-            }
-            else if(RxMessage.Data[1] == 3) //Off
-            {
-                LED_Toggle(RxMessage.Data[0]);
-            }
-            memcpy(send_string+0 , "Can: ", 5);
-            memcpy(send_string+4 , &RxMessage.StdId, 1);
-            memcpy(send_string+5 , ",", 1);
-            memcpy(send_string+6 , &RxMessage.Data[0], 1);
-            memcpy(send_string+7 , ",", 1);
-            memcpy(send_string+8 , &RxMessage.Data[1], 1);
-            memcpy(send_string+9 , "\n",1);
-            send_string[10] = 0x0;
-            VCP_DataTx(send_string, 10); 
-        }
-        
-        if(Button_GetState(1) == KEY_PRESSED)
-        {
-            while(Button_GetState(1) == KEY_PRESSED);
-
-            CanTxMsg TxMessage;
-            TxMessage.StdId=0x12;
-            TxMessage.RTR=CAN_RTR_DATA;
-            TxMessage.IDE=CAN_ID_STD;
-            TxMessage.DLC=2; //0 - 8
-            TxMessage.Data[0]=1;
-            TxMessage.Data[1]=3;
-            LED_Toggle(1);
-            CAN_Transmit(CAN1, &TxMessage);      
-        }
-        
-        if(Button_GetState(2) == KEY_PRESSED)
-        {
-            while(Button_GetState(2) == KEY_PRESSED);
-            memcpy(send_string   , "USB-Test\n" , 9);
-            send_string[9] = 0x0;
-            VCP_DataTx(send_string, 9);
-            LED_Toggle(2);
-        }
-        
-    }
-#endif //MAIN_CONTROLLER
+    Ethernet_Test();
     //STM_EVAL_GPIOReset();
 
 /*	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_OTG_FS | RCC_AHBPeriph_ETH_MAC |

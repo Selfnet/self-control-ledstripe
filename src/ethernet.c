@@ -174,6 +174,7 @@ uint32_t uIPMain(void)
   uip_listen(HTONS(23));
 
   CanRxMsg RxMessage;
+  int can_last_msg_id = 0;
   uint32_t nCount;
   while(1)
   {
@@ -243,14 +244,14 @@ uint32_t uIPMain(void)
       }
     }
 
-    
+/*
     RxMessage.StdId=0x00;
     RxMessage.IDE=CAN_ID_STD;
     RxMessage.DLC=0;
     RxMessage.Data[0]=0x00;
     RxMessage.Data[1]=0x00;
     CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);   
-    if( RxMessage.StdId == 0x12 )
+    if( RxMessage.StdId == 0x12 && can_last_msg_id != (RxMessage.StdId + RxMessage.Data[0]*10 + RxMessage.Data[1]*100) )
     {
         uint8_t send_string[11];
         memcpy(send_string+0 , "Can: ", 5);
@@ -262,9 +263,10 @@ uint32_t uIPMain(void)
         memcpy(send_string+9 , "\n",1);
         send_string[10] = 0x0;
         VCP_DataTx(send_string, 10);
+        can_last_msg_id = RxMessage.StdId + RxMessage.Data[0]*10 + RxMessage.Data[1]*100;
     }
 
-    if(Button_GetState(1) == KEY_PRESSED)
+    /*(if(Button_GetState(1) == KEY_PRESSED)
     {
         while(Button_GetState(1) == KEY_PRESSED);
 
@@ -286,7 +288,15 @@ uint32_t uIPMain(void)
         strcpy(send_string   , "USB-Test");
         VCP_DataTx(send_string, strlen(send_string));
         LED_Toggle(2);
-    }
+
+        NVIC_InitTypeDef NVIC_InitStructure_CAN;
+        NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_RX0_IRQn;
+        NVIC_InitStructure_CAN.NVIC_IRQChannelPreemptionPriority = 0;
+        NVIC_InitStructure_CAN.NVIC_IRQChannelSubPriority = 0;
+        NVIC_InitStructure_CAN.NVIC_IRQChannelCmd = ENABLE;
+        NVIC_Init(&NVIC_InitStructure_CAN);
+
+    }*/
     
   }
   return(TRUE);

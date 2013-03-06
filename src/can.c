@@ -77,11 +77,35 @@ void CAN_Config(void)
   
   
   /* Enable the CAN RX Interrupt */
-  /*NVIC_InitTypeDef NVIC_InitStructure_CAN;
+  NVIC_InitTypeDef NVIC_InitStructure_CAN;
   NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_RX0_IRQn;
-  NVIC_InitStructure_CAN.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure_CAN.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure_CAN.NVIC_IRQChannelPreemptionPriority = 0x0;
+  NVIC_InitStructure_CAN.NVIC_IRQChannelSubPriority = 0x0;
   NVIC_InitStructure_CAN.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure_CAN);
+
+
+  CAN_ITConfig(CAN1, CAN_IT_FMP0, ENABLE);
+
+    //Ethernet IR test
+  NVIC_InitStructure_CAN.NVIC_IRQChannel = ETH_IRQn;
+  NVIC_Init(&NVIC_InitStructure_CAN);
+  NVIC_InitStructure_CAN.NVIC_IRQChannel = ETH_WKUP_IRQn;
+  NVIC_Init(&NVIC_InitStructure_CAN);
+
+
+/*//TEst ob man die evtl. gar net braucht ^^
+  NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_SCE_IRQn;
+  NVIC_Init(&NVIC_InitStructure_CAN);
+
+  NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_RX0_IRQn;
+  NVIC_Init(&NVIC_InitStructure_CAN);
+
+  NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_TX_IRQn;
+  NVIC_Init(&NVIC_InitStructure_CAN);
+
+  NVIC_InitStructure_CAN.NVIC_IRQChannel = ADC1_2_IRQn;
   NVIC_Init(&NVIC_InitStructure_CAN);*/
+
 }
 

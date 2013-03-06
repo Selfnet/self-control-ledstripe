@@ -202,8 +202,6 @@ uint8_t *  USBD_USR_LangIDStrDescriptor( uint8_t speed , uint16_t *length)
 */
 uint8_t *  USBD_USR_ProductStrDescriptor( uint8_t speed , uint16_t *length)
 {
- 
-  
   if(speed == 0)
   {   
     USBD_GetString (USBD_PRODUCT_HS_STRING, USBD_StrDesc, length);

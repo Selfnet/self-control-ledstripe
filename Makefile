@@ -31,8 +31,11 @@ libs:
 src:
 		$(MAKE) -C src $@
 
+debug:
+		$(GDB) $(BUILDDIR)/$(PROGRAM).elf 
+
 usbprogram: all
-		dfu-util -R -a 0 -s 0x08000000 -D $(BUILDDIR)/$(PROGRAM).bin 
+		dfu-util -R -a 0 -d 0483:df11 -s 0x08000000 -D $(BUILDDIR)/$(PROGRAM).bin 
 
 program: all
 		$(STM32FLASH) $(BUILDDIR)/$(PROGRAM).bin $(FLASHLOC)

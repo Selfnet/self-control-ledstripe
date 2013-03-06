@@ -22,6 +22,8 @@ static void handle_input(struct tcp_test_app_state *s)
     //s->inputbuf = uip_appdata;
 
     VCP_DataTx(tmp, len );
+    memcpy(s->outputbuf , tmp , len);
+    s->outputbuf[len+1] = 0;
 
     //BSP:
     //Idx: 0123456789012
@@ -49,7 +51,7 @@ static void handle_input(struct tcp_test_app_state *s)
             else
                 TxMessage.Data[1]=3;
         }
-        LED_Toggle(2);
+        LED_Toggle(1);
         CAN_Transmit(CAN1, &TxMessage);
         
         uint8_t send_string[11];
@@ -61,7 +63,7 @@ static void handle_input(struct tcp_test_app_state *s)
         memcpy(send_string+8 , &TxMessage.Data[1], 1);
         memcpy(send_string+9 , "\n",1);
         send_string[10] = 0x0;
-        VCP_DataTx(send_string, 10);        
+        VCP_DataTx(send_string, 10);
     }
     else
     {
@@ -97,7 +99,7 @@ void tcp_test_appcall(void)
   } else if(s != 0) {
     if(uip_poll()) {
       ++s->timer;
-      strcpy(s->outputbuf+strlen(s->outputbuf) , "Timer");
+      //strcpy(s->outputbuf+strlen(s->outputbuf) , "Timer");
       if(s->timer >= 20) {
 	        uip_abort(); //TimeOut
       }

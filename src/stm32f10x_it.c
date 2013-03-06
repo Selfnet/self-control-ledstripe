@@ -24,10 +24,19 @@
 #include "stm32f10x_it.h"
 extern void USB_OTGFS1_GlobalHandler(void);
 
+#include "io-helper.h"
+
+
+#include <string.h>
+
+
 //usb
 #include "usb_core.h"
 #include "usbd_core.h"
 #include "usbd_cdc_core.h"
+//send
+#include "usbd_cdc_vcp.h"
+
 
 /** @addtogroup Template_Project
   * @{
@@ -149,12 +158,16 @@ void SysTick_Handler(void)
 {
 }
 
+
+/******************************************************************************/
+/******************************************************************************/
+
 /**
   * @brief  This function handles EXTI15_10_IRQ Handler.
   * @param  None
   * @retval None
   */
-void OTG_FS_WKUP_IRQHandler(void)
+void OTG_FS_WKUP_IRQHandler(void) //fuer usb
 {
   if(USB_OTG_dev.cfg.low_power)
   {
@@ -170,36 +183,33 @@ void OTG_FS_WKUP_IRQHandler(void)
   * @param  None
   * @retval None
   */
-#ifdef USE_USB_OTG_HS  
-void OTG_HS_IRQHandler(void)
-#else
-void OTG_FS_IRQHandler(void)
-#endif
+void OTG_FS_IRQHandler(void) //fuer usb
 {
   USBD_OTG_ISR_Handler (&USB_OTG_dev);
 }
 
-#ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED 
+
+//#ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED 
 /**
   * @brief  This function handles EP1_IN Handler.
   * @param  None
   * @retval None
   */
-void OTG_HS_EP1_IN_IRQHandler(void)
-{
-  USBD_OTG_EP1IN_ISR_Handler (&USB_OTG_dev);
-}
+//void OTG_HS_EP1_IN_IRQHandler(void)
+//{
+//  USBD_OTG_EP1IN_ISR_Handler (&USB_OTG_dev);
+//}
 
 /**
   * @brief  This function handles EP1_OUT Handler.
   * @param  None
   * @retval None
   */
-void OTG_HS_EP1_OUT_IRQHandler(void)
-{
-  USBD_OTG_EP1OUT_ISR_Handler (&USB_OTG_dev);
-}
-#endif
+//void OTG_HS_EP1_OUT_IRQHandler(void)
+//{
+//  USBD_OTG_EP1OUT_ISR_Handler (&USB_OTG_dev);
+//}
+//#endif
 
 
 /*******************************************************************************
@@ -209,73 +219,73 @@ void OTG_HS_EP1_OUT_IRQHandler(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void TIM2_IRQHandler(void)
+void TIM2_IRQHandler(void) //fuer ethernet
 {
-#if MAIN_CONTROLLER
 extern  void Tim2Handler (void);
   Tim2Handler();
-#endif
 }
 
 
 
 /******************************************************************************/
+
+/**
+  * @brief  This function handles ExternalInterrupt 0 (Port[A-D] Pin0) Handler.
+  * @param  None
+  * @retval None
+  */
+void EXTI0_IRQHandler(void)
+{
+    //Check if EXTI_Line0 is asserted
+    if(EXTI_GetITStatus(EXTI_Line0) != RESET)
+    {
+        LED_Toggle(1);
+    }
+    //we need to clear line pending bit manually
+    EXTI_ClearITPendingBit(EXTI_Line0);
+}
+
+
+
 // Interrupt test
-void CAN1_RX1_IRQHandler(void)
+void CAN1_RX0_IRQHandler(void)
 {
-    uint8_t string[] = "CAN1_RX1_IRQHandler";
-    VCP_DataTx(string, 19);
+    //CAN_ClearFlag(CAN1, CAN_FLAG_FMP0);
+    //uint8_t send_string[50];
+    //VCP_DataTx("CAN1_RX1_IRQHandler", 19);
+
+    CanRxMsg RxMessage;
+    RxMessage.StdId=0x00;
+    RxMessage.IDE=CAN_ID_STD;
+    RxMessage.DLC=0;
+    RxMessage.Data[0]=0x00;
+    RxMessage.Data[1]=0x00;
+    CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
+
+    if( RxMessage.StdId == 0x11 && ( RxMessage.Data[0] == 0x01 || RxMessage.Data[0] == 0x02 ) )
+    {
+        if(RxMessage.Data[1] == 1) //On
+        {
+            LED_On(RxMessage.Data[0]);
+        }
+        else if(RxMessage.Data[1] == 2) //Off
+        {
+            LED_Off(RxMessage.Data[0]);
+        }
+        else if(RxMessage.Data[1] == 3) //Off
+        {
+            LED_Toggle(RxMessage.Data[0]);
+        }
+        /*memcpy(send_string+0 , "Can: ", 5);
+        memcpy(send_string+4 , &RxMessage.StdId, 1);
+        memcpy(send_string+5 , ",", 1);
+        memcpy(send_string+6 , &RxMessage.Data[0], 1);
+        memcpy(send_string+7 , ",", 1);
+        memcpy(send_string+8 , &RxMessage.Data[1], 1);
+        memcpy(send_string+9 , "\n",1);
+        send_string[10] = 0x0;*/
+        //VCP_DataTx(send_string, 10); 
+    }
 }
-
-void CAN1_SCE_IRQHandler(void)
-{
-    uint8_t string[] = "CAN1_SCE_IRQHandler";
-    VCP_DataTx(string, 19);
-}
-
-void ETH_IRQHandler(void)
-{
-    uint8_t string[] = "ETH_IRQHandler";
-    VCP_DataTx(string, 14);
-}
-
-void ETH_WKUP_IRQHandler(void)
-{
-    uint8_t string[] = "ETH_WKUP_IRQHandler";
-    VCP_DataTx(string, 19);
-}
-
-
-/**
-  * @brief  This function handles OTG USB interrupt request.
-  * @param  None
-  * @retval None
-  */
-//void OTG_FS_IRQHandler(void)
-//{
-//  STM32_PCD_OTG_ISR_Handler();
-//}
-
-
-/******************************************************************************/
-/*                 STM32F10x Peripherals Interrupt Handlers                   */
-/*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */
-/*  available peripheral interrupt handler's name please refer to the startup */
-/*  file (startup_stm32f10x_xx.s).                                            */
-/******************************************************************************/
-
-/**
-  * @brief  This function handles PPP interrupt request.
-  * @param  None
-  * @retval None
-  */
-/*void PPP_IRQHandler(void)
-{
-}*/
-
-/**
-  * @}
-  */
-
 
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/

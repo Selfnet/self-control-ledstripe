@@ -20,6 +20,7 @@ include ../Makefile.common
 
 
 OBJS+=ethernet.o
+OBJS+=ethernet_init.o
 OBJS+=io-helper.o
 OBJS+=tcp_app.o
 OBJS+=main.o
