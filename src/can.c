@@ -94,18 +94,5 @@ void CAN_Config(void)
   NVIC_Init(&NVIC_InitStructure_CAN);
 
 
-/*//TEst ob man die evtl. gar net braucht ^^
-  NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_SCE_IRQn;
-  NVIC_Init(&NVIC_InitStructure_CAN);
-
-  NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_RX0_IRQn;
-  NVIC_Init(&NVIC_InitStructure_CAN);
-
-  NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_TX_IRQn;
-  NVIC_Init(&NVIC_InitStructure_CAN);
-
-  NVIC_InitStructure_CAN.NVIC_IRQChannel = ADC1_2_IRQn;
-  NVIC_Init(&NVIC_InitStructure_CAN);*/
-
 }
 

@@ -1,4 +1,6 @@
 
+#ifndef __IO_HELPER_H__
+#define __IO_HELPER_H__
 
 #include "stm32f10x.h"
 
@@ -42,3 +44,4 @@ void LED_On(uint32_t lednr);
 void LED_Off(uint32_t lednr);
 void LED_Toggle(uint32_t lednr);
 
+#endif

@@ -37,6 +37,8 @@ OBJS+=usb/usbd_usr.o
 OBJS+=usb/usb_bsp.o
 OBJS+=usb/system_stm32f10x.o
 
+OBJS+=led_pwm.o
+
 all: src
 
 src: app.a

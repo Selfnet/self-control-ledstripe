@@ -18,8 +18,8 @@ struct tcp_test_app_state {
   unsigned char timer;
   //struct psock sin, sout;
   //struct pt outputpt;
-  char inputbuf[50];
-  char outputbuf[50];
+  char inputbuf[512];
+  char outputbuf[512];
   //char filename[20];
   //char state;
   //struct httpd_fs_file file;

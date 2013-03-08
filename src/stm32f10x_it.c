@@ -37,6 +37,8 @@ extern void USB_OTGFS1_GlobalHandler(void);
 //send
 #include "usbd_cdc_vcp.h"
 
+#include "led_pwm.h"
+
 
 /** @addtogroup Template_Project
   * @{
@@ -225,6 +227,43 @@ extern  void Tim2Handler (void);
   Tim2Handler();
 }
 
+
+/*******************************************************************************
+* Function Name  : TIM3_IRQHandler
+* Description    : This function handles TIM2 global interrupt request.
+* Input          : None
+* Output         : None
+
+* Return         : None
+*******************************************************************************/
+#include <stdlib.h>
+
+void TIM6_IRQHandler(void) 
+{
+    TIM_ClearITPendingBit(TIM6, TIM_IT_Update );
+    if(led.mode == 2) //random
+    {
+        led.target_r = rand()%2048;
+        led.target_g = rand()%2048;
+        led.target_b = rand()%2048;
+        led.time = 3000;
+        start_fade(&led);
+        led.mode = 3; //random - fading
+    }
+    else if(led.mode == 4) //stress
+    {
+        update_PWM( rand()%2048, rand()%2048, rand()%2048 );
+    }
+    else
+    {
+        if(led.time > 0)
+        {
+            fade_RGB(&led);
+        }
+        else if(led.mode == 3)
+            led.mode = 2;
+    }
+}
 
 
 /******************************************************************************/

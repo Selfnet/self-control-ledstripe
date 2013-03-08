@@ -10,6 +10,8 @@
 #include <stdio.h>
 #define BUF ((struct uip_eth_hdr *)&uip_buf[0])
 
+#include "led_pwm.h"
+
 #define TRUE 1
 #define FALSE 0
 
@@ -160,22 +162,26 @@ uint32_t uIPMain(void)
   uip_init(); // (uip.c)
 
   // Init WEB server
-  uip_ipaddr(ipaddr, 192,168,0,114);
+  uip_ipaddr(ipaddr, 10,43,100,111);
   //printf("IP Address: 192.168.0.114\n\r");
   uip_sethostaddr(ipaddr); //ip
-  uip_ipaddr(ipaddr, 192,168,0,1);
+  uip_ipaddr(ipaddr, 10,43,0,254);
   uip_setdraddr(ipaddr);  //gw
-  uip_ipaddr(ipaddr, 255,255,255,0);
+  uip_ipaddr(ipaddr, 255,255,0,0);
   uip_setnetmask(ipaddr); //nm
-
-  LED_Off(1);
 
   // Initialize the TELNET server.
   uip_listen(HTONS(23));
+  uip_listen(HTONS(80));
+
+  VCP_DataTx("Listen...\n", 11);
+
+  LED_Off(1);
 
   CanRxMsg RxMessage;
   int can_last_msg_id = 0;
   uint32_t nCount;
+  
   while(1)
   {
     uip_len = tapdev_read(uip_buf);
@@ -242,6 +248,19 @@ uint32_t uIPMain(void)
         timer_reset(&arp_timer);
         uip_arp_timer();
       }
+    }
+    
+    if(Button_GetState(1) == KEY_PRESSED)
+    {
+        while(Button_GetState(1) == KEY_PRESSED);
+        led.mode = 2;
+    }
+    if(Button_GetState(2) == KEY_PRESSED)
+    {
+        led.g = (int)(led.g+1)%2048;
+        while(Button_GetState(2) == KEY_PRESSED);
+        VCP_DataTx("USB-Test", 8);
+        set_RGB(&led);
     }
 
 /*

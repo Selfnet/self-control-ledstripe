@@ -29,6 +29,8 @@
 #include "usbd_cdc_core.h"
 #include "usbd_cdc_vcp.h"
 
+#include "led_pwm.h"
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
@@ -152,6 +154,10 @@ int main(void)
 
     /* Setup STM32 system (clock, PLL and Flash configuration) */
     SystemInit();
+    
+    enable_PWM();
+
+    CAN_Config();
 
     //uint8_t send_string[] = {RS232_PRE,0,1,2,RS232_POST};
     uint8_t send_string[50];
@@ -161,9 +167,7 @@ int main(void)
         &USBD_CDC_cb,
         &USR_cb);
 
-    CAN_Config();
-
-    VCP_DataTx("Hallo!", 6);
+    VCP_DataTx("Hallo!\n", 7);
 
     /* Add your application code here */
 
@@ -174,21 +178,8 @@ int main(void)
     Ethernet_Test();
     //STM_EVAL_GPIOReset();
 
-/*	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_OTG_FS | RCC_AHBPeriph_ETH_MAC |
-	RCC_AHBPeriph_ETH_MAC_Tx | RCC_AHBPeriph_ETH_MAC_Rx , DISABLE);
-	RCC_APB2PeriphClockCmd(~0xFFFF0002,DISABLE);
-	RCC_APB1PeriphClockCmd(~(0xC10137C0 | RCC_APB1Periph_USART3),DISABLE);
+    LED_On(2);
 
-	while (1)
-	{
-		int ch;
-		if(0 < ( ch = getchar()))
-		{
-			putchar(ch);
-		}
-	}*/
-	LED_On(2);
-	
     uint32_t nCount;
     while(1){
         LED_Toggle(1);

@@ -32,7 +32,7 @@ src:
 		$(MAKE) -C src $@
 
 debug:
-		$(GDB) $(BUILDDIR)/$(PROGRAM).elf 
+		$(GDB) -x 'gdb-init' $(BUILDDIR)/$(PROGRAM).elf 
 
 usbprogram: all
 		dfu-util -R -a 0 -d 0483:df11 -s 0x08000000 -D $(BUILDDIR)/$(PROGRAM).bin 
