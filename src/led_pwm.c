@@ -43,7 +43,6 @@ void init_timer(void)
 void enable_PWM(void)
 {
     TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-    TIM_OCInitTypeDef TIM_OCInitStructure;
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
@@ -52,7 +51,7 @@ void enable_PWM(void)
 
     GPIO_InitTypeDef GPIO_InitStructure;
  
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_5 /*<< PWM | GIO >>*/ | GPIO_Pin_7;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_5;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 //    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;

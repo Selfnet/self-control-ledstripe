@@ -172,7 +172,7 @@ uint32_t uIPMain(void)
 
   // Initialize the TELNET server.
   uip_listen(HTONS(23));
-  uip_listen(HTONS(80));
+  //uip_listen(HTONS(80));
 
   VCP_DataTx("Listen...\n", 11);
 
@@ -248,19 +248,6 @@ uint32_t uIPMain(void)
         timer_reset(&arp_timer);
         uip_arp_timer();
       }
-    }
-    
-    if(Button_GetState(1) == KEY_PRESSED)
-    {
-        while(Button_GetState(1) == KEY_PRESSED);
-        led.mode = 2;
-    }
-    if(Button_GetState(2) == KEY_PRESSED)
-    {
-        led.g = (int)(led.g+1)%2048;
-        while(Button_GetState(2) == KEY_PRESSED);
-        VCP_DataTx("USB-Test", 8);
-        set_RGB(&led);
     }
 
 /*

@@ -1,4 +1,4 @@
 target remote :3333
 monitor reset halt
-
-
+b HardFault_Handler
+b ETH_IRQHandler

@@ -52,6 +52,7 @@ uint32_t Button_GetState(uint32_t btnnr)
   */
 void LED_Init(void)
 {
+  //** LED1 **
   GPIO_InitTypeDef  GPIO_InitStructure_Led1;
   
   /* Enable the GPIO_LED Clock */
@@ -63,6 +64,8 @@ void LED_Init(void)
   GPIO_InitStructure_Led1.GPIO_Speed = GPIO_Speed_50MHz;
 
   GPIO_Init(LED1_GPIO_PORT, &GPIO_InitStructure_Led1);
+  
+  //** LED2 **
   
   GPIO_InitTypeDef  GPIO_InitStructure_Led2;
   

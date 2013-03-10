@@ -304,11 +304,11 @@ uint32_t ETH_Init(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
   /* Set the DO bit according to ETH_ReceiveOwn value */ 
   /* Set the LM bit according to ETH_LoopbackMode value */ 
   /* Set the DM bit according to ETH_Mode value */ 
-  /* Set the IPC bit according to ETH_ChecksumOffload value */                   
+  /* Set the IPC bit according to ETH_ChecksumOffload value */
   /* Set the DR bit according to ETH_RetryTransmission value */ 
   /* Set the ACS bit according to ETH_AutomaticPadCRCStrip value */ 
-  /* Set the BL bit according to ETH_BackOffLimit value */ 
-  /* Set the DC bit according to ETH_DeferralCheck value */                          
+  /* Set the BL bit according to ETH_BackOffLimit value */
+  /* Set the DC bit according to ETH_DeferralCheck value */
   tmpreg |= (uint32_t)(ETH_InitStruct->ETH_Watchdog | 
                   ETH_InitStruct->ETH_Jabber | 
                   ETH_InitStruct->ETH_InterFrameGap |
@@ -397,7 +397,7 @@ uint32_t ETH_Init(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
                   ETH_InitStruct->ETH_TransmitThresholdControl |
                   ETH_InitStruct->ETH_ForwardErrorFrames |
                   ETH_InitStruct->ETH_ForwardUndersizedGoodFrames |
-                  ETH_InitStruct->ETH_ReceiveThresholdControl |                                   
+                  ETH_InitStruct->ETH_ReceiveThresholdControl |
                   ETH_InitStruct->ETH_SecondFrameOperate); 
   /* Write to ETHERNET DMAOMR */
   ETH->DMAOMR = (uint32_t)tmpreg;
@@ -408,8 +408,8 @@ uint32_t ETH_Init(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
   /* Set the RPBL and 4*PBL bits according to ETH_RxDMABurstLength value */
   /* Set the PBL and 4*PBL bits according to ETH_TxDMABurstLength value */
   /* Set the DSL bit according to ETH_DesciptorSkipLength value */
-  /* Set the PR and DA bits according to ETH_DMAArbitration value */         
-  ETH->DMABMR = (uint32_t)(ETH_InitStruct->ETH_AddressAlignedBeats | 
+  /* Set the PR and DA bits according to ETH_DMAArbitration value */
+  ETH->DMABMR = (uint32_t)(ETH_InitStruct->ETH_AddressAlignedBeats |
                           ETH_InitStruct->ETH_FixedBurst |
                           ETH_InitStruct->ETH_RxDMABurstLength | /* !! if 4xPBL is selected for Tx or Rx it is applied for the other */
                           ETH_InitStruct->ETH_TxDMABurstLength | 
@@ -429,48 +429,48 @@ uint32_t ETH_Init(ETH_InitTypeDef* ETH_InitStruct, uint16_t PHYAddress)
 void ETH_StructInit(ETH_InitTypeDef* ETH_InitStruct)
 {
   /* ETH_InitStruct members default value */
-  /*------------------------   MAC   -----------------------------------*/     
-  ETH_InitStruct->ETH_AutoNegotiation = ETH_AutoNegotiation_Disable;           
-  ETH_InitStruct->ETH_Watchdog = ETH_Watchdog_Enable;                   
-  ETH_InitStruct->ETH_Jabber = ETH_Jabber_Enable;                                                     
-  ETH_InitStruct->ETH_InterFrameGap = ETH_InterFrameGap_96Bit;                                                                                                                          
-  ETH_InitStruct->ETH_CarrierSense = ETH_CarrierSense_Enable;                              
-  ETH_InitStruct->ETH_Speed = ETH_Speed_10M;                       
-  ETH_InitStruct->ETH_ReceiveOwn = ETH_ReceiveOwn_Enable;               
-  ETH_InitStruct->ETH_LoopbackMode = ETH_LoopbackMode_Disable;              
-  ETH_InitStruct->ETH_Mode = ETH_Mode_HalfDuplex;                       
-  ETH_InitStruct->ETH_ChecksumOffload = ETH_ChecksumOffload_Disable;                                                            
-  ETH_InitStruct->ETH_RetryTransmission = ETH_RetryTransmission_Enable;                                                                                  
-  ETH_InitStruct->ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;                                                         
-  ETH_InitStruct->ETH_BackOffLimit = ETH_BackOffLimit_10;                                                                
-  ETH_InitStruct->ETH_DeferralCheck = ETH_DeferralCheck_Disable;                                                                                                                  
-  ETH_InitStruct->ETH_ReceiveAll = ETH_ReceiveAll_Disable;                                                               
-  ETH_InitStruct->ETH_SourceAddrFilter = ETH_SourceAddrFilter_Disable;                                
-  ETH_InitStruct->ETH_PassControlFrames = ETH_PassControlFrames_BlockAll;          
+  /*------------------------   MAC   -----------------------------------*/
+  ETH_InitStruct->ETH_AutoNegotiation = ETH_AutoNegotiation_Disable;
+  ETH_InitStruct->ETH_Watchdog = ETH_Watchdog_Enable;
+  ETH_InitStruct->ETH_Jabber = ETH_Jabber_Enable;
+  ETH_InitStruct->ETH_InterFrameGap = ETH_InterFrameGap_96Bit;
+  ETH_InitStruct->ETH_CarrierSense = ETH_CarrierSense_Enable;
+  ETH_InitStruct->ETH_Speed = ETH_Speed_10M;
+  ETH_InitStruct->ETH_ReceiveOwn = ETH_ReceiveOwn_Enable;
+  ETH_InitStruct->ETH_LoopbackMode = ETH_LoopbackMode_Disable;
+  ETH_InitStruct->ETH_Mode = ETH_Mode_HalfDuplex;
+  ETH_InitStruct->ETH_ChecksumOffload = ETH_ChecksumOffload_Disable;
+  ETH_InitStruct->ETH_RetryTransmission = ETH_RetryTransmission_Enable;
+  ETH_InitStruct->ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;
+  ETH_InitStruct->ETH_BackOffLimit = ETH_BackOffLimit_10;
+  ETH_InitStruct->ETH_DeferralCheck = ETH_DeferralCheck_Disable;
+  ETH_InitStruct->ETH_ReceiveAll = ETH_ReceiveAll_Disable;
+  ETH_InitStruct->ETH_SourceAddrFilter = ETH_SourceAddrFilter_Disable;
+  ETH_InitStruct->ETH_PassControlFrames = ETH_PassControlFrames_BlockAll;
   ETH_InitStruct->ETH_BroadcastFramesReception = ETH_BroadcastFramesReception_Disable;
-  ETH_InitStruct->ETH_DestinationAddrFilter = ETH_DestinationAddrFilter_Normal;      
-  ETH_InitStruct->ETH_PromiscuousMode = ETH_PromiscuousMode_Disable;                                                             
-  ETH_InitStruct->ETH_MulticastFramesFilter = ETH_MulticastFramesFilter_Perfect;      
-  ETH_InitStruct->ETH_UnicastFramesFilter = ETH_UnicastFramesFilter_Perfect;      
-  ETH_InitStruct->ETH_HashTableHigh = 0x0;                
-  ETH_InitStruct->ETH_HashTableLow = 0x0;                     
-  ETH_InitStruct->ETH_PauseTime = 0x0;                 
-  ETH_InitStruct->ETH_ZeroQuantaPause = ETH_ZeroQuantaPause_Disable;            
-  ETH_InitStruct->ETH_PauseLowThreshold = ETH_PauseLowThreshold_Minus4;         
-  ETH_InitStruct->ETH_UnicastPauseFrameDetect = ETH_UnicastPauseFrameDetect_Disable;   
-  ETH_InitStruct->ETH_ReceiveFlowControl = ETH_ReceiveFlowControl_Disable;        
-  ETH_InitStruct->ETH_TransmitFlowControl = ETH_TransmitFlowControl_Disable;      
-  ETH_InitStruct->ETH_VLANTagComparison = ETH_VLANTagComparison_16Bit;          
-  ETH_InitStruct->ETH_VLANTagIdentifier = 0x0;          
+  ETH_InitStruct->ETH_DestinationAddrFilter = ETH_DestinationAddrFilter_Normal;
+  ETH_InitStruct->ETH_PromiscuousMode = ETH_PromiscuousMode_Disable;
+  ETH_InitStruct->ETH_MulticastFramesFilter = ETH_MulticastFramesFilter_Perfect;
+  ETH_InitStruct->ETH_UnicastFramesFilter = ETH_UnicastFramesFilter_Perfect;
+  ETH_InitStruct->ETH_HashTableHigh = 0x0;
+  ETH_InitStruct->ETH_HashTableLow = 0x0;
+  ETH_InitStruct->ETH_PauseTime = 0x0;
+  ETH_InitStruct->ETH_ZeroQuantaPause = ETH_ZeroQuantaPause_Disable;
+  ETH_InitStruct->ETH_PauseLowThreshold = ETH_PauseLowThreshold_Minus4;
+  ETH_InitStruct->ETH_UnicastPauseFrameDetect = ETH_UnicastPauseFrameDetect_Disable;
+  ETH_InitStruct->ETH_ReceiveFlowControl = ETH_ReceiveFlowControl_Disable;
+  ETH_InitStruct->ETH_TransmitFlowControl = ETH_TransmitFlowControl_Disable;
+  ETH_InitStruct->ETH_VLANTagComparison = ETH_VLANTagComparison_16Bit;
+  ETH_InitStruct->ETH_VLANTagIdentifier = 0x0;
   /*------------------------   DMA   -----------------------------------*/  
-  ETH_InitStruct->ETH_DropTCPIPChecksumErrorFrame = ETH_DropTCPIPChecksumErrorFrame_Disable; 
-  ETH_InitStruct->ETH_ReceiveStoreForward = ETH_ReceiveStoreForward_Enable;       
-  ETH_InitStruct->ETH_FlushReceivedFrame = ETH_FlushReceivedFrame_Disable;       
-  ETH_InitStruct->ETH_TransmitStoreForward = ETH_TransmitStoreForward_Enable;     
-  ETH_InitStruct->ETH_TransmitThresholdControl = ETH_TransmitThresholdControl_64Bytes;  
-  ETH_InitStruct->ETH_ForwardErrorFrames = ETH_ForwardErrorFrames_Disable;       
-  ETH_InitStruct->ETH_ForwardUndersizedGoodFrames = ETH_ForwardUndersizedGoodFrames_Disable; 
-  ETH_InitStruct->ETH_ReceiveThresholdControl = ETH_ReceiveThresholdControl_64Bytes;   
+  ETH_InitStruct->ETH_DropTCPIPChecksumErrorFrame = ETH_DropTCPIPChecksumErrorFrame_Disable;
+  ETH_InitStruct->ETH_ReceiveStoreForward = ETH_ReceiveStoreForward_Enable;
+  ETH_InitStruct->ETH_FlushReceivedFrame = ETH_FlushReceivedFrame_Disable;
+  ETH_InitStruct->ETH_TransmitStoreForward = ETH_TransmitStoreForward_Enable;
+  ETH_InitStruct->ETH_TransmitThresholdControl = ETH_TransmitThresholdControl_64Bytes;
+  ETH_InitStruct->ETH_ForwardErrorFrames = ETH_ForwardErrorFrames_Disable;
+  ETH_InitStruct->ETH_ForwardUndersizedGoodFrames = ETH_ForwardUndersizedGoodFrames_Disable;
+  ETH_InitStruct->ETH_ReceiveThresholdControl = ETH_ReceiveThresholdControl_64Bytes;
   ETH_InitStruct->ETH_SecondFrameOperate = ETH_SecondFrameOperate_Disable;
   ETH_InitStruct->ETH_AddressAlignedBeats = ETH_AddressAlignedBeats_Enable;
   ETH_InitStruct->ETH_FixedBurst = ETH_FixedBurst_Disable;
@@ -487,17 +487,17 @@ void ETH_StructInit(ETH_InitTypeDef* ETH_InitStruct)
   */
 void ETH_Start(void)
 {
-  /* Enable transmit state machine of the MAC for transmission on the MII */  
+  /* Enable transmit state machine of the MAC for transmission on the MII */
   ETH_MACTransmissionCmd(ENABLE);
   /* Flush Transmit FIFO */
   ETH_FlushTransmitFIFO();
-  /* Enable receive state machine of the MAC for reception from the MII */  
+  /* Enable receive state machine of the MAC for reception from the MII */
   ETH_MACReceptionCmd(ENABLE);
- 
+
   /* Start DMA transmission */
-  ETH_DMATransmissionCmd(ENABLE); 
+  ETH_DMATransmissionCmd(ENABLE);
   /* Start DMA reception */
-  ETH_DMAReceptionCmd(ENABLE);   
+  ETH_DMAReceptionCmd(ENABLE);
 }
 
 /**
@@ -518,8 +518,8 @@ uint32_t ETH_HandleTxPkt(uint8_t *ppkt, uint16_t FrameLength)
     return ETH_ERROR;
   }
   
-  /* Copy the frame to be sent into memory pointed by the current ETHERNET DMA Tx descriptor */      
-  for(offset=0; offset<FrameLength; offset++)       
+  /* Copy the frame to be sent into memory pointed by the current ETHERNET DMA Tx descriptor */
+  for(offset=0; offset<FrameLength; offset++)
   {
     (*(__IO uint8_t *)((DMATxDescToSet->Buffer1Addr) + offset)) = (*(ppkt + offset));
   }
@@ -539,28 +539,28 @@ uint32_t ETH_HandleTxPkt(uint8_t *ppkt, uint16_t FrameLength)
     ETH->DMATPDR = 0;
   }
   
-  /* Update the ETHERNET DMA global Tx descriptor with next Tx decriptor */  
+  /* Update the ETHERNET DMA global Tx descriptor with next Tx decriptor */
   /* Chained Mode */
   if((DMATxDescToSet->Status & ETH_DMATxDesc_TCH) != (uint32_t)RESET)
   {     
-    /* Selects the next DMA Tx descriptor list for next buffer to send */ 
-    DMATxDescToSet = (ETH_DMADESCTypeDef*) (DMATxDescToSet->Buffer2NextDescAddr);    
+    /* Selects the next DMA Tx descriptor list for next buffer to send */
+    DMATxDescToSet = (ETH_DMADESCTypeDef*) (DMATxDescToSet->Buffer2NextDescAddr);
   }
   else /* Ring Mode */
   {  
     if((DMATxDescToSet->Status & ETH_DMATxDesc_TER) != (uint32_t)RESET)
     {
       /* Selects the first DMA Tx descriptor for next buffer to send: last Tx descriptor was used */
-      DMATxDescToSet = (ETH_DMADESCTypeDef*) (ETH->DMATDLAR);      
+      DMATxDescToSet = (ETH_DMADESCTypeDef*) (ETH->DMATDLAR);
     }
     else
     {  
       /* Selects the next DMA Tx descriptor list for next buffer to send */
-      DMATxDescToSet = (ETH_DMADESCTypeDef*) ((uint32_t)DMATxDescToSet + 0x10 + ((ETH->DMABMR & ETH_DMABMR_DSL) >> 2));      
+      DMATxDescToSet = (ETH_DMADESCTypeDef*) ((uint32_t)DMATxDescToSet + 0x10 + ((ETH->DMABMR & ETH_DMABMR_DSL) >> 2));
     }
   }
   /* Return SUCCESS */
-  return ETH_SUCCESS;   
+  return ETH_SUCCESS;
 }
 
 /**

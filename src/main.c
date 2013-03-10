@@ -67,37 +67,29 @@ void SysTickStop(void)
     SysTick->CTRL = 0;
 }
 
-#if MAIN_CONTROLLER
 
 int Ethernet_Test()
 {
-    Ethernet_Init();
+    ethernet_init();
 
     /* uIP stack main loop */
     uIPMain(); //ethernet.c
 
     //wenn uIPMain zu ende --> aufräumen
+    ethernet_deinit();
 
-    TIM_DeInit(TIM2);
-
-    /* Enable the TIM2 Interrupt */
-    NVIC_InitTypeDef NVIC_InitStructure;
-    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
-    NVIC_Init(&NVIC_InitStructure);
     return 0;
 }
 
-#endif //MAIN_CONTROLLER
-
 void ButtonInit(void)
 {
+
+    // *** Button2 ***
+
     //EXTI structure to init EXT
     EXTI_InitTypeDef EXTI_InitStructure;
-    //NVIC structure to set up NVIC controller
-    NVIC_InitTypeDef NVIC_InitStructure;
     //Connect EXTI Line to Button Pin
-    GPIO_EXTILineConfig(GPIO_PortSourceGPIOD, GPIO_PinSource0); //PortA.0 --> Btn2 | PortD.0 --> CanRX pin (kein Can Interrupt)
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource0); //PortA.0 --> Btn2 | PortD.0 --> CanRX pin (kein Can Interrupt)
     //Configure Button EXTI line
     EXTI_InitStructure.EXTI_Line = EXTI_Line0;
     //select interrupt mode
@@ -111,6 +103,8 @@ void ButtonInit(void)
 
 
     //configure NVIC
+    //NVIC structure to set up NVIC controller
+    NVIC_InitTypeDef NVIC_InitStructure;
     //select NVIC channel to configure
     NVIC_InitStructure.NVIC_IRQChannel = EXTI0_IRQn;
     //set priority to lowest
@@ -122,18 +116,77 @@ void ButtonInit(void)
     //update NVIC registers
     NVIC_Init(&NVIC_InitStructure);
 
-/*  //Test weise nen haufen scheis anmachen
-    NVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn;
+    // *** Button1 ***
+/*
+    // Disable Tamper pin
+    BKP_TamperPinCmd(DISABLE);
+    // Disable Tamper interrupt
+    BKP_ITConfig(DISABLE);
+    // Tamper pin active on low level
+    BKP_TamperPinLevelConfig(BKP_TamperPinLevel_Low);
+    // Clear Tamper pin Event(TE) pending flag
+    BKP_ClearFlag();
+    // Enable Tamper interrupt
+    BKP_ITConfig(ENABLE);
+    // Enable Tamper pin
+    BKP_TamperPinCmd(ENABLE);
+
+*/
+    //configure NVIC
+    //select NVIC channel to configure
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI15_10_IRQn;//TAMPER_IRQn;
+    //set priority to lowest
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x00;
+    //set subpriority to lowest
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;
+    //enable IRQ channel
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    //update NVIC registers
     NVIC_Init(&NVIC_InitStructure);
 
-    NVIC_InitStructure.NVIC_IRQChannel = EXTI2_IRQn;
-    NVIC_Init(&NVIC_InitStructure);
 
-    NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
-    NVIC_Init(&NVIC_InitStructure);
 
-    NVIC_InitStructure.NVIC_IRQChannel = EXTI4_IRQn;
-    NVIC_Init(&NVIC_InitStructure);*/
+
+/// TEST
+
+
+  //if (__EXTI_USED & (1 << 13)) {                            // EXTI13 used
+
+    RCC_APB2PeriphClockCmd(RCC_APB2ENR_AFIOEN, ENABLE);
+//    RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;                     // enable clock for Alternate Function
+
+#define __AFIO_EXTICR4 0x00000020
+    AFIO->EXTICR[3] &= 0xFF0F;                              // clear used pin
+    AFIO->EXTICR[3] |= (0x00F0 & __AFIO_EXTICR4);           // set pin to use
+
+#define __EXTI_IMR                0x00002001              //  3
+#define __EXTI_EMR                0x00000000              //  4
+#define __EXTI_RTSR               0x00000000              //  5
+#define __EXTI_FTSR               0x00002001              //  6
+
+    EXTI->IMR       |= ((1 << 13) & __EXTI_IMR);            // unmask interrupt
+    EXTI->EMR       |= ((1 << 13) & __EXTI_EMR);            // unmask event
+    EXTI->RTSR      |= ((1 << 13) & __EXTI_RTSR);           // set rising edge
+    EXTI->FTSR      |= ((1 << 13) & __EXTI_FTSR);           // set falling edge
+
+    //if (__EXTI_INTERRUPTS & (1 << 13)) {                    // interrupt used
+      //NVIC->ISER[1] |= (1 << (EXTI15_10_IRQChannel & 0x1F));// enable interrupt EXTI 10..15
+    //}
+  //} // end EXTI13 used
+
+  GPIO_InitTypeDef  GPIO_InitStructure;
+  
+  /* Enable the GPIO_LED Clock */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+
+  /* Configure the GPIO_LED pin */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+
 }
 
 
@@ -146,7 +199,7 @@ int main(void)
 {
     /* Button Init */
     Button_Init();
-    //ButtonInit(); //interrupt init 
+    ButtonInit(); //interrupt init 
 
     /* LED Init */
     LED_Init();
@@ -176,15 +229,7 @@ int main(void)
     //Ethernet msg format: 'SEND LED X (ON|OFF|xxx)'
     //Alle can nachrichten werden auf USB ausgegeben
     Ethernet_Test();
-    //STM_EVAL_GPIOReset();
 
-    LED_On(2);
-
-    uint32_t nCount;
-    while(1){
-        LED_Toggle(1);
-        for(nCount = UI32_DELAY_TIME; nCount != 0; nCount--);
-    }
 }
 
 /**

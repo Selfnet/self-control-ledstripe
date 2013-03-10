@@ -1,7 +1,79 @@
 
 #include "includes.h"
 
-void Ethernet_Init(void)
+/**
+ * Enable DMA interrupts.
+ */
+
+void ethernet_enable_interrupt(void)
+{
+    // Enable DMA interrupts
+    //#if INT_ENABLE_NIS
+    ETH->DMAIER |= ETH_DMAIER_NISE;         // Normal interrupt summary (master flag ob ueberhaput interrupts ausgeloest werden sollen
+    //#endif
+    #if INT_ENABLE_AIS
+    ETH->DMAIER |= ETH_DMAIER_AISE;         // Abnormal interrupt summary
+    #endif
+
+
+    #if INT_ENABLE_ERI
+    ETH->DMAIER |= ETH_DMAIER_ERIE;         // Early receive
+    #endif
+    #if INT_ENABLE_FBEI
+    ETH->DMAIER |= ETH_DMAIER_FBEIE;        // Fatal bus error
+    #endif
+    #if INT_ENABLE_ETI
+    ETH->DMAIER |= ETH_DMAIER_ETIE;         // Early transmit interrupt
+    #endif
+    #if INT_ENABLE_RWTI
+    ETH->DMAIER |= ETH_DMAIER_RWTIE;        // Receive watchdog timeout
+    #endif
+    #if INT_ENABLE_RPSI
+    ETH->DMAIER |= ETH_DMAIER_RPSIE;        // Receive process stopped
+    #endif
+    #if INT_ENABLE_RBUI
+    ETH->DMAIER |= ETH_DMAIER_RBUIE;        // Receive buffer unavailable
+    #endif
+    //#if INT_ENABLE_RI
+    ETH->DMAIER |= ETH_DMAIER_RIE;          // Received
+    //#endif
+    #if INT_ENABLE_TUI
+    ETH->DMAIER |= ETH_DMAIER_TUIE;         // Transmit underflow
+    #endif
+    #if INT_ENABLE_ROI
+    ETH->DMAIER |= ETH_DMAIER_ROIE;         // Receive overflow
+    #endif
+    #if INT_ENABLE_TJTI
+    ETH->DMAIER |= ETH_DMAIER_TJTIE;        // Transmit jabber timeout
+    #endif
+    #if INT_ENABLE_TBUI
+    ETH->DMAIER |= ETH_DMAIER_TBUIE;        // Transmit buffer unavailable
+    #endif
+    #if INT_ENABLE_TPSI
+    ETH->DMAIER |= ETH_DMAIER_TPSIE;        // Transmit process stopped
+    #endif
+    #if INT_ENABLE_TI
+    ETH->DMAIER |= ETH_DMAIER_TIE;          // Transmit
+    #endif
+    
+    
+    //configure NVIC
+    NVIC_InitTypeDef NVIC_InitStructure;
+    //select NVIC channel to configure
+    NVIC_InitStructure.NVIC_IRQChannel = ETH_IRQn;//TAMPER_IRQn;
+    //set priority to lowest
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x00;
+    //set subpriority to lowest
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;
+    //enable IRQ channel
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    //update NVIC registers
+    NVIC_Init(&NVIC_InitStructure);
+}
+
+
+
+int ethernet_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
@@ -149,4 +221,23 @@ void Ethernet_Init(void)
     }
 
     ETH_MACITConfig(ETH_MAC_IT_PMT,ENABLE);
+    
+    ethernet_enable_interrupt();
+}
+
+
+void ethernet_deinit(void)
+{
+    TIM_DeInit(TIM2);
+
+    /* Enable the TIM2 Interrupt */
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
+    NVIC_Init(&NVIC_InitStructure);
+    
+    /* Enable the TIM2 Interrupt */
+    NVIC_InitStructure.NVIC_IRQChannel = ETH_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
+    NVIC_Init(&NVIC_InitStructure);
 }

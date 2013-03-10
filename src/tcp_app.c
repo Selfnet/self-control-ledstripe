@@ -32,8 +32,8 @@ static void handle_input(struct tcp_test_app_state *s)
         if(strncmp(tmp+3, " /", 2) == 0)
         {
             //strcpy(s->outputbuf, "HTTP/1.0 500 Internal Server Error\r\n\r\n");
-            //strcpy(s->outputbuf, "HTTP/1.0 200 OK\r\nDate: Mon, 23 May 2013 22:38:34 GMT\r\nServer: C\r\nLast-Modified: Wed, 08 Jan 2012 23:11:55 GMT\r\nETag: \"1134c51-9c-4a42917d08ac0\"\r\nContent-Length: 46\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<a href=\"/on\">on</a> <a href=\"/off\">off</a>\r\n\r\n");
-            strcpy(s->outputbuf, "HTTP/1.0 200 OK\r\nServer: C\r\nContent-Length: 46\r\nCache-Control: no-cache\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<a href=\"/on\">on</a> <a href=\"/off\">off</a>\r\n\r\n");
+//            strcpy(s->outputbuf, "HTTP/1.0 200 OK\r\nServer: C\r\nContent-Length: 46\r\nCache-Control: no-cache\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<a href=\"/on\">on</a> <a href=\"/off\">off</a>\r\n\r\n");
+            strcpy(s->outputbuf, "HTTP/1.0 200 OK\r\nServer: C\r\nCache-Control: no-cache\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<a href=\"/on\">on</a> <a href=\"/off\">off</a> <a href=\"/fade\">fade</a> <a href=\"/light_tgl\">light_tgl</a> \r\n\r\n");
 
 
             if(strncmp(tmp+5, "on", 2) == 0)
@@ -61,6 +61,12 @@ static void handle_input(struct tcp_test_app_state *s)
             else if(strncmp(tmp+5, "light_tgl", 9) == 0)
             {
                 GPIOB->ODR ^= GPIO_Pin_7;
+            }
+            else if(strncmp(tmp+5, "rgb/", 4) == 0)
+            { // rgb/<r>/<g>/<b>/
+                led.mode = 0;
+                //sscanf(tmp+9, "%d/%d/%d/" , led.r, led.g, led.b);
+                set_RGB(&led);
             }
         }
     }
@@ -131,8 +137,6 @@ static void handle_input(struct tcp_test_app_state *s)
     {
         led.mode = tmp[5]-'0';
     }
-    //Idx: 0123456789012
-    //Str: LED COLOR
     else if(tmp[0] == 100)
     {
         led.mode = 0;
@@ -200,7 +204,7 @@ void tcp_test_appcall(void)
     //PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
     //PSOCK_INIT(&s->sout, s->outputbuf, sizeof(s->outputbuf) - 1);
     s->timer = 0;
-    //strcpy(s->outputbuf , "hallo - bitte can-bus anschliesen");
+    strcpy(s->outputbuf , "hallo - bitte can-bus anschliesen");
     
     handle_connection(s); //TODO
   } else if(s != 0) {
