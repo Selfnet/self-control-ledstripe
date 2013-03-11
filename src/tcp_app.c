@@ -137,7 +137,7 @@ static void handle_input(struct tcp_test_app_state *s)
     {
         led.mode = tmp[5]-'0';
     }
-    else if(tmp[0] == 100)
+    else if(tmp[0] == 100) //set color
     {
         led.mode = 0;
         led.r = convert_color(tmp[1]);
@@ -156,7 +156,7 @@ static void handle_input(struct tcp_test_app_state *s)
         VCP_DataTx(send_string, 10);
         LED_Toggle(1);
     }
-    else if(tmp[0] == 101)
+    else if(tmp[0] == 101) //fade to color
     {
         led.mode = 0;
         led.target_r = convert_color(tmp[1]);
@@ -175,6 +175,14 @@ static void handle_input(struct tcp_test_app_state *s)
         send_string[10] = 0x0;
         VCP_DataTx(send_string, 10);
         LED_Toggle(1);
+    }
+    else if(tmp[0] == 102) //light on
+    {
+        GPIOB->BSRR = GPIO_Pin_7;
+    }
+    else if(tmp[0] == 103) //light off
+    {
+        GPIOB->BRR = GPIO_Pin_7;
     }
     else
     {
