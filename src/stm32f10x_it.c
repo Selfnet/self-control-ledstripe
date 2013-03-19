@@ -25,6 +25,8 @@
 extern void USB_OTGFS1_GlobalHandler(void);
 
 #include "io-helper.h"
+#include "uip.h"
+#include "led_pwm.h"
 
 
 #include <string.h>
@@ -37,12 +39,6 @@ extern void USB_OTGFS1_GlobalHandler(void);
 //send
 #include "usbd_cdc_vcp.h"
 
-#include "led_pwm.h"
-
-
-/** @addtogroup Template_Project
-  * @{
-  */
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -52,10 +48,10 @@ extern void USB_OTGFS1_GlobalHandler(void);
 /* Private functions ---------------------------------------------------------*/
 
 //usb
-extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
-extern uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
+extern USB_OTG_CORE_HANDLE                  USB_OTG_dev;
+extern uint32_t USBD_OTG_ISR_Handler        (USB_OTG_CORE_HANDLE *pdev);
 #ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED 
-extern uint32_t USBD_OTG_EP1IN_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
+extern uint32_t USBD_OTG_EP1IN_ISR_Handler  (USB_OTG_CORE_HANDLE *pdev);
 extern uint32_t USBD_OTG_EP1OUT_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
 #endif
 
@@ -79,10 +75,10 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
-  /* Go to infinite loop when Hard Fault exception occurs */
-  while (1)
-  {
-  }
+    /* Go to infinite loop when Hard Fault exception occurs */
+    while (1)
+    {
+    }
 }
 
 /**
@@ -92,10 +88,10 @@ void HardFault_Handler(void)
   */
 void MemManage_Handler(void)
 {
-  /* Go to infinite loop when Memory Manage exception occurs */
-  while (1)
-  {
-  }
+    /* Go to infinite loop when Memory Manage exception occurs */
+    while (1)
+    {
+    }
 }
 
 /**
@@ -105,10 +101,10 @@ void MemManage_Handler(void)
   */
 void BusFault_Handler(void)
 {
-  /* Go to infinite loop when Bus Fault exception occurs */
-  while (1)
-  {
-  }
+    /* Go to infinite loop when Bus Fault exception occurs */
+    while (1)
+    {
+    }
 }
 
 /**
@@ -118,10 +114,10 @@ void BusFault_Handler(void)
   */
 void UsageFault_Handler(void)
 {
-  /* Go to infinite loop when Usage Fault exception occurs */
-  while (1)
-  {
-  }
+    /* Go to infinite loop when Usage Fault exception occurs */
+    while (1)
+    {
+    }
 }
 
 /**
@@ -171,13 +167,13 @@ void SysTick_Handler(void)
   */
 void OTG_FS_WKUP_IRQHandler(void) //fuer usb
 {
-  if(USB_OTG_dev.cfg.low_power)
-  {
-    *(uint32_t *)(0xE000ED10) &= 0xFFFFFFF9 ; 
-    SystemInit();
-    USB_OTG_UngateClock(&USB_OTG_dev);
-  }
-  EXTI_ClearITPendingBit(EXTI_Line18);
+    if(USB_OTG_dev.cfg.low_power)
+    {
+        *(uint32_t *)(0xE000ED10) &= 0xFFFFFFF9 ; 
+        SystemInit();
+        USB_OTG_UngateClock(&USB_OTG_dev);
+    }
+    EXTI_ClearITPendingBit(EXTI_Line18);
 }
 
 /**
@@ -187,31 +183,8 @@ void OTG_FS_WKUP_IRQHandler(void) //fuer usb
   */
 void OTG_FS_IRQHandler(void) //fuer usb
 {
-  USBD_OTG_ISR_Handler (&USB_OTG_dev);
+    USBD_OTG_ISR_Handler (&USB_OTG_dev);
 }
-
-
-//#ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED 
-/**
-  * @brief  This function handles EP1_IN Handler.
-  * @param  None
-  * @retval None
-  */
-//void OTG_HS_EP1_IN_IRQHandler(void)
-//{
-//  USBD_OTG_EP1IN_ISR_Handler (&USB_OTG_dev);
-//}
-
-/**
-  * @brief  This function handles EP1_OUT Handler.
-  * @param  None
-  * @retval None
-  */
-//void OTG_HS_EP1_OUT_IRQHandler(void)
-//{
-//  USBD_OTG_EP1OUT_ISR_Handler (&USB_OTG_dev);
-//}
-//#endif
 
 
 /*******************************************************************************
@@ -224,7 +197,7 @@ void OTG_FS_IRQHandler(void) //fuer usb
 void TIM2_IRQHandler(void) //fuer ethernet
 {
 extern  void Tim2Handler (void);
-  Tim2Handler();
+    Tim2Handler();
 }
 
 
@@ -241,24 +214,40 @@ extern  void Tim2Handler (void);
 void TIM6_IRQHandler(void) 
 {
     TIM_ClearITPendingBit(TIM6, TIM_IT_Update );
-    if(led.mode == 2) //random
+    if(led.mode == 2) //random target rgb
     {
-        led.target_r = rand()%2048;
-        led.target_g = rand()%2048;
-        led.target_b = rand()%2048;
-        led.time = 3000;
+        led.target_r = rand()%2*255;
+        led.target_g = rand()%2*255;
+        led.target_b = rand()%2*255;
+        led.time = led.std_time;
         start_fade(&led);
         led.mode = 3; //random - fading
     }
+    else if(led.mode == 5) //random change
+    {
+        fade_rnd_RGB(&led);
+    }
     else if(led.mode == 4) //stress
     {
-        update_PWM( rand()%2048, rand()%2048, rand()%2048 );
+        update_PWM( rand()%255, rand()%255, rand()%255 );
     }
+    else if(led.mode == 9) //debug
+        set_RGB(&led);
     else
     {
         if(led.time > 0)
         {
             fade_RGB(&led);
+            if(led.time == 0 && led.mode == 0)
+            {
+                // TODO send msg when finished
+                struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
+                //uip_send("fading finished\n" , 16 );
+                //if(uip_connected())
+                //{
+                    strcpy(s->outputbuf , "fading finished");
+                //}
+            }
         }
         else if(led.mode == 3)
             led.mode = 2;
@@ -300,7 +289,7 @@ void EXTI15_10_IRQHandler(void) //Button1
     //EXTI_ClearITPendingBit(EXTI_Line15);
 }
 
-
+// TODO
 // *** ETH Interrupt ***
 void ETH_IRQHandler(void)
 {
@@ -488,6 +477,7 @@ void ETH_IRQHandler(void)
 }
 
 
+
 // *** CAN Interrupt ***
 void CAN1_RX0_IRQHandler(void)
 {
@@ -517,6 +507,7 @@ void CAN1_RX0_IRQHandler(void)
         {
             LED_Toggle(RxMessage.Data[0]);
         }
+        /// TODO add USB send (when buffer overflow is fixed)
         /*memcpy(send_string+0 , "Can: ", 5);
         memcpy(send_string+4 , &RxMessage.StdId, 1);
         memcpy(send_string+5 , ",", 1);
@@ -524,8 +515,8 @@ void CAN1_RX0_IRQHandler(void)
         memcpy(send_string+7 , ",", 1);
         memcpy(send_string+8 , &RxMessage.Data[1], 1);
         memcpy(send_string+9 , "\n",1);
-        send_string[10] = 0x0;*/
-        //VCP_DataTx(send_string, 10); 
+        send_string[10] = 0x0;
+        VCP_DataTx(send_string, 10);*/
     }
 }
 

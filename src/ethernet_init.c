@@ -186,9 +186,10 @@ int ethernet_init(void)
 
     /* Fill ETH_InitStructure parametrs */
     /*------------------------   MAC   -----------------------------------*/
-    ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Disable  ;
+    //ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Disable  ;
+    ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Enable;
     //ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
-    ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
+    //ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
     //ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
     ETH_InitStructure.ETH_RetryTransmission = ETH_RetryTransmission_Disable;
     ETH_InitStructure.ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;

@@ -20,20 +20,18 @@ static void handle_input(struct tcp_test_app_state *s)
 {
     char * tmp = (char *)uip_appdata;
     int    len = uip_len;
-    //s->inputbuf = uip_appdata;
+    ////s->inputbuf = uip_appdata;
 
-    VCP_DataTx(tmp, len );
-    //memcpy(s->outputbuf , tmp , len);
-    //s->outputbuf[len+1] = 0;
+    //VCP_DataTx(tmp, len );
+    ////memcpy(s->outputbuf , tmp , len);
+    ////s->outputbuf[len+1] = 0;
 
 
-    if(strncmp(tmp, "GET", 3) == 0)
+    /*if(strncmp(tmp, "GET", 3) == 0)
     {
         if(strncmp(tmp+3, " /", 2) == 0)
         {
-            //strcpy(s->outputbuf, "HTTP/1.0 500 Internal Server Error\r\n\r\n");
-//            strcpy(s->outputbuf, "HTTP/1.0 200 OK\r\nServer: C\r\nContent-Length: 46\r\nCache-Control: no-cache\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<a href=\"/on\">on</a> <a href=\"/off\">off</a>\r\n\r\n");
-            strcpy(s->outputbuf, "HTTP/1.0 200 OK\r\nServer: C\r\nCache-Control: no-cache\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<a href=\"/on\">on</a> <a href=\"/off\">off</a> <a href=\"/fade\">fade</a> <a href=\"/light_tgl\">light_tgl</a> \r\n\r\n");
+            //strcpy(s->outputbuf, "HTTP/1.0 200 OK\r\nServer: C\r\nCache-Control: no-cache\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<a href=\"/on\">on</a> <a href=\"/off\">off</a> <a href=\"/fade\">fade</a> <a href=\"/light_tgl\">light_tgl</a> \r\n\r\n");
 
 
             if(strncmp(tmp+5, "on", 2) == 0)
@@ -69,11 +67,11 @@ static void handle_input(struct tcp_test_app_state *s)
                 set_RGB(&led);
             }
         }
-    }
+    }*/
     //BSP:
     //Idx: 0123456789012
     //Str: SEND LED 1 ON
-    else if(strncmp(tmp, "SEND", 4) == 0 && len > 10)
+    if(strncmp(tmp, "SEND", 4) == 0 && len > 10)
     {
         CanTxMsg TxMessage;
         TxMessage.StdId=0x11;
@@ -99,7 +97,7 @@ static void handle_input(struct tcp_test_app_state *s)
         LED_Toggle(1);
         CAN_Transmit(CAN1, &TxMessage);
         
-        uint8_t send_string[11];
+        /*uint8_t send_string[11];
         memcpy(send_string+0 , "Can: ", 5);
         memcpy(send_string+4 , &TxMessage.StdId, 1);
         memcpy(send_string+5 , ",", 1);
@@ -108,18 +106,9 @@ static void handle_input(struct tcp_test_app_state *s)
         memcpy(send_string+8 , &TxMessage.Data[1], 1);
         memcpy(send_string+9 , "\n",1);
         send_string[10] = 0x0;
-        VCP_DataTx(send_string, 10);
+        VCP_DataTx(send_string, 10);*/
     }
     else if(strncmp(tmp, "LEDOFF", 6) == 0)
-    {
-        led.target_r = 2048;
-        led.target_g = 2048;
-        led.target_b = 2048;
-        led.mode = 0;
-        led.time = 1000;
-        start_fade(&led);
-    }
-    else if(strncmp(tmp, "LEDON", 5) == 0)
     {
         led.target_r = 0;
         led.target_g = 0;
@@ -128,61 +117,106 @@ static void handle_input(struct tcp_test_app_state *s)
         led.time = 1000;
         start_fade(&led);
     }
+    else if(strncmp(tmp, "LEDON", 5) == 0)
+    {
+        led.target_r = 255;
+        led.target_g = 255;
+        led.target_b = 255;
+        led.mode = 0;
+        led.time = 1000;
+        start_fade(&led);
+    }
     else if(strncmp(tmp, "LEDRND", 6) == 0)
     {
-        led.mode = 2;
-        strcpy(s->outputbuf, "LEDRND");
+        led.std_time = (tmp[6]-'0')*500;
+
+        led.mode = 5;
+        led.time = led.std_time+10;
+        strcpy(s->outputbuf, "LEDRND-MODE 5");
     }
     else if(strncmp(tmp, "MODE", 4) == 0)
     {
-        led.mode = tmp[5]-'0';
+        led.mode = tmp[4]-'0';
+    }
+    else if(strncmp(tmp, "FADE", 4) == 0)
+    {
+        led.mode = 0;
+        led.target_r = 0;
+        led.target_g = 0;
+        led.target_b = 0;
+        led.time = (tmp[7]-'0')*1000;
+        if(tmp[4] == 'r')
+            led.target_r = 255;
+        if(tmp[5] == 'g')
+            led.target_g = 255;
+        if(tmp[6] == 'b')
+            led.target_b = 255;
+
+        start_fade(&led);
     }
     else if(tmp[0] == 100) //set color
     {
         led.mode = 0;
-        led.r = convert_color(tmp[1]);
-        led.g = convert_color(tmp[2]);
-        led.b = convert_color(tmp[3]);
+        led.r = tmp[1];
+        led.g = tmp[2];
+        led.b = tmp[3];
         set_RGB(&led);
-        uint8_t send_string[11];
+        /*uint8_t send_string[11];
         memcpy(send_string+0 , "RGB: ", 5);
-        /*memcpy(send_string+4 , led.r, 1);
+        memcpy(send_string+4 , led.r, 1);
         memcpy(send_string+5 , ",", 1);
         memcpy(send_string+6 , led.g, 1);
         memcpy(send_string+7 , ",", 1);
-        memcpy(send_string+8 , led.b, 1);*/
-        memcpy(send_string+4 , "\n",1);
+        memcpy(send_string+8 , led.b, 1);
+        //memcpy(send_string+4 , "\n",1);
         send_string[10] = 0x0;
-        VCP_DataTx(send_string, 10);
+        VCP_DataTx(send_string, 10);*/
         LED_Toggle(1);
     }
     else if(tmp[0] == 101) //fade to color
     {
         led.mode = 0;
-        led.target_r = convert_color(tmp[1]);
-        led.target_g = convert_color(tmp[2]);
-        led.target_b = convert_color(tmp[3]);
+        led.target_r = tmp[1];
+        led.target_g = tmp[2];
+        led.target_b = tmp[3];
         led.time = (int)tmp[4]*100;
         start_fade(&led);
-        uint8_t send_string[11];
+        /*uint8_t send_string[11];
         memcpy(send_string+0 , "FRGB:", 5);
-        /*memcpy(send_string+4 , led.r, 1);
+        memcpy(send_string+4 , led.r, 1);
         memcpy(send_string+5 , ",", 1);
         memcpy(send_string+6 , led.g, 1);
         memcpy(send_string+7 , ",", 1);
-        memcpy(send_string+9 , led.b, 1);*/
+        memcpy(send_string+9 , led.b, 1);
         memcpy(send_string+4 , "\n",1);
         send_string[10] = 0x0;
-        VCP_DataTx(send_string, 10);
+        VCP_DataTx(send_string, 10);*/
         LED_Toggle(1);
     }
-    else if(tmp[0] == 102) //light on
+    else if(tmp[0] == 102) //light
     {
-        GPIOB->BSRR = GPIO_Pin_7;
+        if(tmp[1] == 1) //light 1
+        {
+            if(tmp[2] == 2) // on 
+                GPIOB->BSRR = GPIO_Pin_7;
+            else if(tmp[2] == 1) // off
+                GPIOB->BRR = GPIO_Pin_7;
+        }
     }
-    else if(tmp[0] == 103) //light off
+    else if(tmp[0] == 103) //configure auto fademode
     {
-        GPIOB->BRR = GPIO_Pin_7;
+        led.std_time = (tmp[1]<<8)+tmp[2];
+        led.mode = 2;
+    }
+    else if(tmp[0] == 104) //configure auto fademode 2
+    {
+        led.std_time = (tmp[1]<<8)+tmp[2];
+        led.mode = 5;
+    
+        led.change_r = rand()%7+1;
+        led.change_g = rand()%7+1;
+        led.change_b = rand()%7+1;
+        led.time = led.std_time;
     }
     else
     {
@@ -193,41 +227,49 @@ static void handle_input(struct tcp_test_app_state *s)
 static void
 handle_connection(struct tcp_test_app_state *s)
 {
-  if( uip_newdata() )
-    handle_input(s);
-  if( strlen(s->outputbuf) > 0 )
-  {
-    uip_send(s->outputbuf , strlen(s->outputbuf) );
-    memset(s->outputbuf, 0, 50); //leeren
-  }
-    
+    if( uip_newdata() )
+        handle_input(s);
+    if( strlen(s->outputbuf) > 0 )
+    {
+        uip_send(s->outputbuf , strlen(s->outputbuf) );
+        memset(s->outputbuf, 0, 50); //leeren
+    }
 }
 
 void tcp_test_appcall(void)
 {
-  struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
+    struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
 
-  if(uip_closed() || uip_aborted() || uip_timedout()) {
-  } else if(uip_connected()) {
-    //PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
-    //PSOCK_INIT(&s->sout, s->outputbuf, sizeof(s->outputbuf) - 1);
-    s->timer = 0;
-    strcpy(s->outputbuf , "hallo - bitte can-bus anschliesen");
-    
-    handle_connection(s); //TODO
-  } else if(s != 0) {
-    if(uip_poll()) {
-      ++s->timer;
-      //strcpy(s->outputbuf+strlen(s->outputbuf) , "Timer");
-      if(s->timer >= 20) {
-	        uip_abort(); //TimeOut
-      }
-    } else {
-      s->timer = 0;
+    if(uip_closed() || uip_aborted() || uip_timedout())
+    {
     }
-    handle_connection(s); //TODO
-  } else {
-    uip_abort();
-  }
+    else if(uip_connected())
+    {
+        //PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
+        //PSOCK_INIT(&s->sout, s->outputbuf, sizeof(s->outputbuf) - 1);
+        s->timer = 0;
+        strcpy(s->outputbuf , "hallo - bitte can-bus anschliesen");
+
+        handle_connection(s); //TODO
+    }
+    else if(s != 0)
+    {
+        if(uip_poll())
+        {
+            ++s->timer;
+            //strcpy(s->outputbuf+strlen(s->outputbuf) , "Timer");
+            if(s->timer >= 20)
+                uip_abort(); //TimeOut
+        }
+        else
+        {
+        s->timer = 0;
+        }
+        handle_connection(s); //TODO
+    }
+    else
+    {
+        uip_abort();
+    }
 }
 

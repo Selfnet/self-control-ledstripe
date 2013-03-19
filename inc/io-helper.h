@@ -32,14 +32,14 @@
 
 
 //Buttons
-void Button_Init(void);
+void button_init(void);
 uint32_t Button_GetState(uint32_t);
 
 // Can functions
-void CAN_Config(void);
+void CAN_config(void);
 
 // Led
-void LED_Init(void);
+void LED_init(void);
 void LED_On(uint32_t lednr);
 void LED_Off(uint32_t lednr);
 void LED_Toggle(uint32_t lednr);

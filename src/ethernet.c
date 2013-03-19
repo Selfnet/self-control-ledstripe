@@ -7,7 +7,9 @@
  *    $Revision: #1 $
  **************************************************************************/
 #include "ethernet.h"
+
 #include <stdio.h>
+
 #define BUF ((struct uip_eth_hdr *)&uip_buf[0])
 
 #include "led_pwm.h"
@@ -103,12 +105,12 @@ typedef union _EnetDmaDesc_t
   // Rx DMA descriptor
   struct
   {
-    RecDesc0_t                RxDesc0;
-    RecDesc1_t                RxDesc1;
-    uint32_t *                   pBuffer;
+    RecDesc0_t  RxDesc0;
+    RecDesc1_t  RxDesc1;
+    uint32_t *  pBuffer;
     union
     {
-      uint32_t *                 pBuffer2;
+      uint32_t *              pBuffer2;
       union _EnetDmaDesc_t *  pEnetDmaNextDesc;
     };
   } Rx;
@@ -117,10 +119,10 @@ typedef union _EnetDmaDesc_t
   {
     TranDesc0_t               TxDesc0;
     TranDesc1_t               TxDesc1;
-    uint32_t *                   pBuffer1;
+    uint32_t *                pBuffer1;
     union
     {
-      uint32_t *                 pBuffer2;
+      uint32_t *              pBuffer2;
       union _EnetDmaDesc_t *  pEnetDmaNextDesc;
     };
   } Tx;
@@ -140,172 +142,117 @@ EnetDmaDesc_t EnetDmaTx;
 
 uint32_t uIPMain(void)
 {
-  uint32_t i;
-  uip_ipaddr_t ipaddr;
-  struct timer periodic_timer, arp_timer;
+    uint32_t i;
+    uip_ipaddr_t ipaddr;
+    struct timer periodic_timer, arp_timer;
 
-  LED_On(2);
+    LED_On(2);
 
-  // Sys timer init 1/100 sec tick
-  clock_init(2);
+    // Sys timer init 1/100 sec tick
+    clock_init(2);
 
-  timer_set(&periodic_timer, CLOCK_SECOND / 2);
-  timer_set(&arp_timer, CLOCK_SECOND * 10);
+    timer_set(&periodic_timer, CLOCK_SECOND / 2);
+    timer_set(&arp_timer, CLOCK_SECOND * 10);
 
-  // Initialize the ethernet device driver
-  // Init MAC
-  // Phy network negotiation
-  tapdev_init(); // ENET_TxDscrInit (ethernet.c) & ENET_RxDscrInit (ethernet.c) &  ETH_Start (stm32_eth.c)
+    // Initialize the ethernet device driver
+    // Init MAC
+    // Phy network negotiation
+    tapdev_init(); // ENET_TxDscrInit (ethernet.c) & ENET_RxDscrInit (ethernet.c) &  ETH_Start (stm32_eth.c)
 
-  // uIP web server
-  // Initialize the uIP TCP/IP stack.
-  uip_init(); // (uip.c)
+    // uIP web server
+    // Initialize the uIP TCP/IP stack.
+    uip_init(); // (uip.c)
 
-  // Init WEB server
-  uip_ipaddr(ipaddr, 10,43,100,111);
-  //printf("IP Address: 192.168.0.114\n\r");
-  uip_sethostaddr(ipaddr); //ip
-  uip_ipaddr(ipaddr, 10,43,0,254);
-  uip_setdraddr(ipaddr);  //gw
-  uip_ipaddr(ipaddr, 255,255,0,0);
-  uip_setnetmask(ipaddr); //nm
+    // Init WEB server
+    uip_ipaddr(ipaddr, 10,43,100,111);
+    uip_sethostaddr(ipaddr); //ip
+    uip_ipaddr(ipaddr, 10,43,0,254);
+    uip_setdraddr(ipaddr);  //gw
+    uip_ipaddr(ipaddr, 255,255,0,0);
+    uip_setnetmask(ipaddr); //nm
 
-  // Initialize the TELNET server.
-  uip_listen(HTONS(23));
-  //uip_listen(HTONS(80));
+    // Initialize the TELNET server.
+    uip_listen(HTONS(23));
+    //uip_listen(HTONS(80));
 
-  VCP_DataTx("Listen...\n", 11);
+    VCP_DataTx("Listen...\n", 11);
 
-  LED_Off(1);
+    LED_Off(1);
 
-  CanRxMsg RxMessage;
-  int can_last_msg_id = 0;
-  uint32_t nCount;
+    CanRxMsg RxMessage;
+    int can_last_msg_id = 0;
+    uint32_t nCount;
   
-  while(1)
-  {
-    uip_len = tapdev_read(uip_buf);
-    if(uip_len > 0) //read input
+    while(1)
     {
-      if(BUF->type == htons(UIP_ETHTYPE_IP)) //Layer3?
-      {
-          uip_arp_ipin(); 
-          uip_input();
-          /* If the above function invocation resulted in data that
-             should be sent out on the network, the global variable
-             uip_len is set to a value > 0. */
-          if(uip_len > 0)
-          {
-              uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
-              tapdev_send(uip_buf,uip_len);
-          }
-      }
-      else if(BUF->type == htons(UIP_ETHTYPE_ARP)) //Layer2?
-      {
-          uip_arp_arpin();
-          /* If the above function invocation resulted in data that
-             should be sent out on the network, the global variable
-             uip_len is set to a value > 0. */
-          if(uip_len > 0)
-          {
-              tapdev_send(uip_buf,uip_len);
-          }
-      }
-    }
-    else if(timer_expired(&periodic_timer)) //check if there is data in the send queue of each connection and send it
-    {
-      timer_reset(&periodic_timer);
-      for(i = 0; i < UIP_CONNS; i++)
-      {
-            uip_periodic(i); //sets uip_conn to the current connections (macro uip.h)
-            /* If the above function invocation resulted in data that
-               should be sent out on the network, the global variable
-               uip_len is set to a value > 0. */
-            if(uip_len > 0)
+        uip_len = tapdev_read(uip_buf);
+        if(uip_len > 0) //read input
+        {
+            if(BUF->type == htons(UIP_ETHTYPE_IP)) //Layer3?
             {
-                uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
-                tapdev_send(uip_buf,uip_len);
+                uip_arp_ipin(); 
+                uip_input();
+                /* If the above function invocation resulted in data that
+                 should be sent out on the network, the global variable
+                 uip_len is set to a value > 0. */
+                if(uip_len > 0)
+                {
+                    uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
+                    tapdev_send(uip_buf,uip_len);
+                }
             }
-      }
-
-#if UIP_UDP
-      for(i = 0; i < UIP_UDP_CONNS; i++) {
-        uip_udp_periodic(i);
-        /* If the above function invocation resulted in data that
-           should be sent out on the network, the global variable
-           uip_len is set to a value > 0. */
-        if(uip_len > 0) {
-          uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
-          tapdev_send();
+            else if(BUF->type == htons(UIP_ETHTYPE_ARP)) //Layer2?
+            {
+                uip_arp_arpin();
+                /* If the above function invocation resulted in data that
+                should be sent out on the network, the global variable
+                uip_len is set to a value > 0. */
+                if(uip_len > 0)
+                {
+                    tapdev_send(uip_buf,uip_len);
+                }
+            }
         }
-      }
-#endif /* UIP_UDP */
-      
-      /* Call the ARP timer function every 10 seconds. */
-      /* It updates the arp-table (removes old entries) */
-      if(timer_expired(&arp_timer))
-      {
-        timer_reset(&arp_timer);
-        uip_arp_timer();
-      }
+        else if(timer_expired(&periodic_timer)) //check if there is data in the send queue of each connection and send it
+        {
+            timer_reset(&periodic_timer);
+            for(i = 0; i < UIP_CONNS; i++)
+            {
+                uip_periodic(i); //sets uip_conn to the current connections (macro uip.h)
+                /* If the above function invocation resulted in data that
+                should be sent out on the network, the global variable
+                uip_len is set to a value > 0. */
+                if(uip_len > 0)
+                {
+                    uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
+                    tapdev_send(uip_buf,uip_len);
+                }
+            }
+            #if UIP_UDP
+            for(i = 0; i < UIP_UDP_CONNS; i++)
+            {
+                uip_udp_periodic(i);
+                /* If the above function invocation resulted in data that
+                should be sent out on the network, the global variable
+                uip_len is set to a value > 0. */
+                if(uip_len > 0)
+                {
+                    uip_arp_out(); //get ARP of destination - or default gw (uip_arp.c)
+                    tapdev_send();
+                }
+            }
+            #endif /* UIP_UDP */
+
+            /* Call the ARP timer function every 10 seconds. */
+            /* It updates the arp-table (removes old entries) */
+            if(timer_expired(&arp_timer))
+            {
+                timer_reset(&arp_timer);
+                uip_arp_timer();
+            }
+        }
     }
-
-/*
-    RxMessage.StdId=0x00;
-    RxMessage.IDE=CAN_ID_STD;
-    RxMessage.DLC=0;
-    RxMessage.Data[0]=0x00;
-    RxMessage.Data[1]=0x00;
-    CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);   
-    if( RxMessage.StdId == 0x12 && can_last_msg_id != (RxMessage.StdId + RxMessage.Data[0]*10 + RxMessage.Data[1]*100) )
-    {
-        uint8_t send_string[11];
-        memcpy(send_string+0 , "Can: ", 5);
-        memcpy(send_string+4 , &RxMessage.StdId, 1);
-        memcpy(send_string+5 , ",", 1);
-        memcpy(send_string+6 , &RxMessage.Data[0], 1);
-        memcpy(send_string+7 , ",", 1);
-        memcpy(send_string+8 , &RxMessage.Data[1], 1);
-        memcpy(send_string+9 , "\n",1);
-        send_string[10] = 0x0;
-        VCP_DataTx(send_string, 10);
-        can_last_msg_id = RxMessage.StdId + RxMessage.Data[0]*10 + RxMessage.Data[1]*100;
-    }
-
-    /*(if(Button_GetState(1) == KEY_PRESSED)
-    {
-        while(Button_GetState(1) == KEY_PRESSED);
-
-        CanTxMsg TxMessage;
-        TxMessage.StdId=0x11;
-        TxMessage.RTR=CAN_RTR_DATA;
-        TxMessage.IDE=CAN_ID_STD;
-        TxMessage.DLC=2; //0 - 8
-        TxMessage.Data[0]=1;
-        TxMessage.Data[1]=3;
-        LED_Toggle(1);
-        CAN_Transmit(CAN1, &TxMessage);      
-    }
-
-    if(Button_GetState(2) == KEY_PRESSED)
-    {
-        while(Button_GetState(2) == KEY_PRESSED);
-        uint8_t send_string[50];
-        strcpy(send_string   , "USB-Test");
-        VCP_DataTx(send_string, strlen(send_string));
-        LED_Toggle(2);
-
-        NVIC_InitTypeDef NVIC_InitStructure_CAN;
-        NVIC_InitStructure_CAN.NVIC_IRQChannel = CAN1_RX0_IRQn;
-        NVIC_InitStructure_CAN.NVIC_IRQChannelPreemptionPriority = 0;
-        NVIC_InitStructure_CAN.NVIC_IRQChannelSubPriority = 0;
-        NVIC_InitStructure_CAN.NVIC_IRQChannelCmd = ENABLE;
-        NVIC_Init(&NVIC_InitStructure_CAN);
-
-    }*/
-    
-  }
-  return(TRUE);
+    return(TRUE);
 }
 
 
@@ -318,29 +265,29 @@ uint32_t uIPMain(void)
 *******************************************************************************/
 void ENET_RxDscrInit(void)
 {
-  /* Initialization */
-  /* Assign temp Rx array to the ENET buffer */
-  EnetDmaRx.Rx.pBuffer = (uint32_t *)RxBuff;
+    /* Initialization */
+    /* Assign temp Rx array to the ENET buffer */
+    EnetDmaRx.Rx.pBuffer = (uint32_t *)RxBuff;
 
-  /* Initialize RX ENET Status and control */
-  EnetDmaRx.Rx.RxDesc0.Data = 0;
+    /* Initialize RX ENET Status and control */
+    EnetDmaRx.Rx.RxDesc0.Data = 0;
 
-  /* Initialize the next descriptor- In our case its single descriptor */
-  EnetDmaRx.Rx.pEnetDmaNextDesc = &EnetDmaRx;
+    /* Initialize the next descriptor- In our case its single descriptor */
+    EnetDmaRx.Rx.pEnetDmaNextDesc = &EnetDmaRx;
 
-  EnetDmaRx.Rx.RxDesc1.Data = 0;
-  EnetDmaRx.Rx.RxDesc1.RER  = 0; // end of ring
-  EnetDmaRx.Rx.RxDesc1.RCH  = 1; // end of ring
+    EnetDmaRx.Rx.RxDesc1.Data = 0;
+    EnetDmaRx.Rx.RxDesc1.RER  = 0; // end of ring
+    EnetDmaRx.Rx.RxDesc1.RCH  = 1; // end of ring
 
-  /* Set the max packet size  */
-  EnetDmaRx.Rx.RxDesc1.RBS1 = EMAC_MAX_PACKET_SIZE;
+    /* Set the max packet size  */
+    EnetDmaRx.Rx.RxDesc1.RBS1 = EMAC_MAX_PACKET_SIZE;
 
-  /* Setting the VALID bit */
-  EnetDmaRx.Rx.RxDesc0.OWN = 1;
-  /* Setting the RX NEXT Descriptor Register inside the ENET */
-  ETH->DMARDLAR = (uint32_t)&EnetDmaRx;
-  /* Setting the RX NEXT Descriptor Register inside the ENET */
-  //ETH_DMARDLAR = (uint32_t)&EnetDmaRx;
+    /* Setting the VALID bit */
+    EnetDmaRx.Rx.RxDesc0.OWN = 1;
+    /* Setting the RX NEXT Descriptor Register inside the ENET */
+    ETH->DMARDLAR = (uint32_t)&EnetDmaRx;
+    /* Setting the RX NEXT Descriptor Register inside the ENET */
+    //ETH_DMARDLAR = (uint32_t)&EnetDmaRx;
 }
 
 /*******************************************************************************
@@ -353,27 +300,27 @@ void ENET_RxDscrInit(void)
 
 void ENET_TxDscrInit(void)
 {
-  /* ENET Start Address */
-  EnetDmaTx.Tx.pBuffer1 = (uint32_t *)TxBuff;
+    /* ENET Start Address */
+    EnetDmaTx.Tx.pBuffer1 = (uint32_t *)TxBuff;
 
-  /* Next Descriptor Address */
-  EnetDmaTx.Tx.pEnetDmaNextDesc = &EnetDmaTx;
+    /* Next Descriptor Address */
+    EnetDmaTx.Tx.pEnetDmaNextDesc = &EnetDmaTx;
 
-  /* Initialize ENET status and control */
-  EnetDmaTx.Tx.TxDesc0.TCH  = 1;
-  EnetDmaTx.Tx.TxDesc0.Data = 0;
-  EnetDmaTx.Tx.TxDesc1.Data = 0;
-  /* Tx next set to Tx descriptor base */
-  ETH->DMATDLAR = (uint32_t)&EnetDmaTx;
+    /* Initialize ENET status and control */
+    EnetDmaTx.Tx.TxDesc0.TCH  = 1;
+    EnetDmaTx.Tx.TxDesc0.Data = 0;
+    EnetDmaTx.Tx.TxDesc1.Data = 0;
+    /* Tx next set to Tx descriptor base */
+    ETH->DMATDLAR = (uint32_t)&EnetDmaTx;
 
 }
 
 void tapdev_init(void)
 {
-  ENET_TxDscrInit();
-  ENET_RxDscrInit();
+    ENET_TxDscrInit();
+    ENET_RxDscrInit();
 
-  ETH_Start();
+    ETH_Start();
 }
 
 /*************************************************************************
@@ -386,25 +333,25 @@ void tapdev_init(void)
  *************************************************************************/
 uint32_t tapdev_read(void * pPacket)
 {
-  uint32_t size;
-  /*check for validity*/
-  if(0 == EnetDmaRx.Rx.RxDesc0.OWN)
-  {
-    /*Get the size of the packet*/
-    size = EnetDmaRx.Rx.RxDesc0.FL; // CRC
-    //MEMCOPY_L2S_BY4((u8*)ppkt, RxBuff, size); /*optimized memcopy function*/
-    memcpy(pPacket, RxBuff, size);   //string.h library*/
-  }
-  else
-  {
-    return(ENET_NOK);
-  }
-  /* Give the buffer back to ENET */
-  EnetDmaRx.Rx.RxDesc0.OWN = 1;
-  /* Start the receive operation */
-  ETH->DMARPDR = 1;
-  /* Return no error */
-  return size;
+    uint32_t size;
+    /*check for validity*/
+    if(0 == EnetDmaRx.Rx.RxDesc0.OWN)
+    {
+        /*Get the size of the packet*/
+        size = EnetDmaRx.Rx.RxDesc0.FL; // CRC
+        //MEMCOPY_L2S_BY4((u8*)ppkt, RxBuff, size); /*optimized memcopy function*/
+        memcpy(pPacket, RxBuff, size);   //string.h library*/
+    }
+    else
+    {
+        return(ENET_NOK);
+    }
+    /* Give the buffer back to ENET */
+    EnetDmaRx.Rx.RxDesc0.OWN = 1;
+    /* Start the receive operation */
+    ETH->DMARPDR = 1;
+    /* Return no error */
+    return size;
 }
 
 /*************************************************************************
@@ -417,33 +364,33 @@ uint32_t tapdev_read(void * pPacket)
  *************************************************************************/
 void tapdev_send(void *pPacket, uint32_t size)
 {
-  while(EnetDmaTx.Tx.TxDesc0.OWN);
+    while(EnetDmaTx.Tx.TxDesc0.OWN);
 
-  /* Copy the  application buffer to the driver buffer
+    /* Copy the  application buffer to the driver buffer
      Using this MEMCOPY_L2L_BY4 makes the copy routine faster
      than memcpy */
-  //MEMCOPY_L2S_BY4((u8*)TxBuff, (u8*)ppkt, size);
-  memcpy(TxBuff, pPacket, size);
+    //MEMCOPY_L2S_BY4((u8*)TxBuff, (u8*)ppkt, size);
+    memcpy(TxBuff, pPacket, size);
 
-  /* Assign ENET address to Temp Tx Array */
-  EnetDmaTx.Tx.pBuffer1 = (uint32_t *)TxBuff;
+    /* Assign ENET address to Temp Tx Array */
+    EnetDmaTx.Tx.pBuffer1 = (uint32_t *)TxBuff;
 
-  /* Setting the Frame Length*/
-  EnetDmaTx.Tx.TxDesc0.Data = 0;
-  EnetDmaTx.Tx.TxDesc0.TCH  = 1;
-  EnetDmaTx.Tx.TxDesc0.LSEG = 1;
-  EnetDmaTx.Tx.TxDesc0.FS   = 1;
-  EnetDmaTx.Tx.TxDesc0.DC   = 0;
-  EnetDmaTx.Tx.TxDesc0.DP   = 0;
+    /* Setting the Frame Length*/
+    EnetDmaTx.Tx.TxDesc0.Data = 0;
+    EnetDmaTx.Tx.TxDesc0.TCH  = 1;
+    EnetDmaTx.Tx.TxDesc0.LSEG = 1;
+    EnetDmaTx.Tx.TxDesc0.FS   = 1;
+    EnetDmaTx.Tx.TxDesc0.DC   = 0;
+    EnetDmaTx.Tx.TxDesc0.DP   = 0;
 
-  EnetDmaTx.Tx.TxDesc1.Data = 0;
-  EnetDmaTx.Tx.TxDesc1.TBS1 = (size&0xFFF);
+    EnetDmaTx.Tx.TxDesc1.Data = 0;
+    EnetDmaTx.Tx.TxDesc1.TBS1 = (size&0xFFF);
 
-  /* Start the ENET by setting the VALID bit in dmaPackStatus of current descr*/
-  EnetDmaTx.Tx.TxDesc0.OWN = 1;
+    /* Start the ENET by setting the VALID bit in dmaPackStatus of current descr*/
+    EnetDmaTx.Tx.TxDesc0.OWN = 1;
 
-  /* Start the transmit operation */
-  ETH->DMATPDR = 1;
+    /* Start the transmit operation */
+    ETH->DMATPDR = 1;
 }
 
 
