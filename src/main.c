@@ -93,14 +93,14 @@ int main(void)
     CAN_config();
 
     // initialize USB VirtualComPort
-    uint8_t send_string[50];
+    /*uint8_t send_string[50];
     USBD_Init(&USB_OTG_dev,
         USB_OTG_FS_CORE_ID,
         &USR_desc,
         &USBD_CDC_cb,
         &USR_cb);
     // send greetings to the COM-Port ;)
-    VCP_DataTx("Hallo!\n", 7);
+    VCP_DataTx("Hallo!\n", 7);*/
 
     // initialize Ethernet (Pins, Speed, Interrupt, etc...)
     ethernet_init();

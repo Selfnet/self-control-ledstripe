@@ -223,7 +223,7 @@ int ethernet_init(void)
 
     ETH_MACITConfig(ETH_MAC_IT_PMT,ENABLE);
     
-    ethernet_enable_interrupt();
+    //ethernet_enable_interrupt();
 }
 
 

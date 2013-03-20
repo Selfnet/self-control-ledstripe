@@ -229,10 +229,13 @@ void TIM6_IRQHandler(void)
     }
     else if(led.mode == 4) //stress
     {
-        update_PWM( rand()%255, rand()%255, rand()%255 );
+        led.r = rand()%255;
+        led.g = rand()%255;
+        led.b = rand()%255;
+        set_RGB(&led);
     }
     else if(led.mode == 9) //debug
-        set_RGB(&led);
+        _update_PWM( &led );//set_RGB(&led);
     else
     {
         if(led.time > 0)
@@ -242,11 +245,7 @@ void TIM6_IRQHandler(void)
             {
                 // TODO send msg when finished
                 struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
-                //uip_send("fading finished\n" , 16 );
-                //if(uip_connected())
-                //{
-                    strcpy(s->outputbuf , "fading finished");
-                //}
+                strcpy(s->outputbuf , "fading finished");
             }
         }
         else if(led.mode == 3)
@@ -267,9 +266,23 @@ void EXTI0_IRQHandler(void) //Button2
     //Check if EXTI_Line0 is asserted
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
-        LED_Off(1);
-        GPIOB->BRR = GPIO_Pin_7;
+        //LED_Off(1);
+        //GPIOB->BRR = GPIO_Pin_7;
+        led.mode = 9;
+        led.cur_b -= 100;
+        led.cur_r = 0;
+        led.cur_g = 0;
+        if(led.cur_r >= 0 && led.cur_r <= 2047 && led.cur_g >= 0 && led.cur_g <= 2047 && led.cur_b >= 0 && led.cur_b <= 2047)
+            ;//_update_PWM( &led );
+        else
+        {
+            LED_Toggle(2);
+            led.cur_b = 0;
+        }
+        _update_PWM( &led );
+
     }
+    
     //we need to clear line pending bit manually
     EXTI_ClearITPendingBit(EXTI_Line0);
 }
@@ -282,8 +295,20 @@ void EXTI15_10_IRQHandler(void) //Button1
     //Check if EXTI_Line0 is asserted
     //if(EXTI_GetITStatus(EXTI_Line15) != RESET)
     {
-        LED_On(1);
-        GPIOB->BSRR = GPIO_Pin_7;
+        //LED_On(1);
+        //GPIOB->BSRR = GPIO_Pin_7;
+        led.mode = 9;
+        led.cur_b += 100;
+        led.cur_r = 0;
+        led.cur_g = 0;
+        if(led.cur_r >= 0 && led.cur_r <= 2047 && led.cur_g >= 0 && led.cur_g <= 2047 && led.cur_b >= 0 && led.cur_b <= 2047)
+            ;//_update_PWM( &led );
+        else
+        {
+            LED_Toggle(2);
+            led.cur_b = 2048;
+        }
+        _update_PWM( &led );
     }
     //we need to clear line pending bit manually
     //EXTI_ClearITPendingBit(EXTI_Line15);

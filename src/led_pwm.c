@@ -1,6 +1,9 @@
 
 #include "led_pwm.h"
 
+#include <string.h>
+#include "uip.h"
+
 RGB_Led_State led;
 
 void init_timer(void)
@@ -63,31 +66,66 @@ void enable_PWM(void)
     // Time base layout settings: TIM3 works because f = 72KHz 72M divided by 72000000, we subtract 1 and prescaler (0)
     // 72000000 on share for a period of 1 (999 +1) and get some 72000
     TIM_TimeBaseStructure.TIM_Period = PWM_STEPS-1;
-    TIM_TimeBaseStructure.TIM_Prescaler = 0;  //fclk = 72M/72M - 1 = 0
+    TIM_TimeBaseStructure.TIM_Prescaler = 2;  //fclk = 72M/72M - 1 = 0
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;    //0 = do not share the clock
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up; // count up mode
 
     TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 
-    led.mode = 5;
-    led.r = 256;
-    led.g = 256;
-    led.b = 256;
-    led.time = 256;
-    led.std_time = 250;
-    fade_rnd_RGB(&led);
-//    update_PWM( led.r, led.g, led.b);
+
+    TIM_OCInitTypeDef TIM_OCInitStructure;
+
+    // Setup channel 3 who is led to PB0 (green)
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //signal from the timer will be used to control the interrupt controller, so it must be Enable
+    TIM_OCInitStructure.TIM_Pulse = 0;//(int)led->cur_g;
+//    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;   // high state
+    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   // low state
+    TIM_OC3Init(TIM3, &TIM_OCInitStructure);
+    TIM_OC3PreloadConfig(TIM3, TIM_OCPreload_Enable); //PB0
+
+
+    // Setup Channel 4 who is led to the PB1 (red)
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //signal from the timer will be used to control the interrupt controller, so it must be Enable
+    TIM_OCInitStructure.TIM_Pulse = 0;//(int)led->cur_r;
+    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   // low state
+    TIM_OC4Init(TIM3, &TIM_OCInitStructure);
+    TIM_OC4PreloadConfig(TIM3, TIM_OCPreload_Enable); //PB1
+
+
+    // Setup Channel 2 who is led to the PB5 (blue)
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
+    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //signal from the timer will be used to control the interrupt controller, so it must be Enable
+    TIM_OCInitStructure.TIM_Pulse = 0;
+    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   // low state
+    TIM_OC2Init(TIM3, &TIM_OCInitStructure);
+    TIM_OC2PreloadConfig(TIM3, TIM_OCPreload_Enable); //PB5
 
     TIM_ARRPreloadConfig(TIM3,ENABLE);
     //  Enable the timer
     TIM_Cmd(TIM3, ENABLE);
-    
+
+
+    led.mode = 5;
+    led.tmp = NULL;
+    led.r = 0;
+    led.g = 0;
+    led.b = 0;
+    led.cur_r = 0;
+    led.cur_g = 0;
+    led.cur_b = 0;
+    led.time = 256;
+    led.std_time = 50;
+    fade_rnd_RGB(&led);
+
     init_timer(); //fürs faden
 }
 
 void set_RGB(RGB_Led_State *led)
 {
-    update_PWM( led->r, led->g, led->b);
+    if(led->r <= 255 && led->r >= 0 && led->g <= 255 && led->g >= 0 && led->b <= 255 && led->b >= 0)
+        update_PWM(led);
 }
 
 void start_fade(RGB_Led_State *led)
@@ -122,20 +160,45 @@ void fade_RGB(RGB_Led_State *led)
         led->b = led->target_b;
         led->time = 0;
     }
-    update_PWM( led->r, led->g, led->b);
+    update_PWM( led );
+}
+
+
+void ftoc(float a, char *s)
+{
+    int t = (int)a;
+    s[3] = (char)(t%10 +48);
+    t /= 10;
+    s[2] = (char)(t%10 +48);
+    t /= 10;
+    s[1] = (char)(t%10 +48);
+    t /= 10;
+    s[0] = (char)(t%10 +48);
+    s[4] = '.';
+    
+    t = (a-(int)a)*100;
+    s[6] = (char)(t%10 +48);
+    t /= 10;
+    s[5] = (char)(t%10 +48);
+
+}
+
+int limit(float v, int min, int max)
+{
+    if(v > max)
+        return max;
+    else if( v < min)
+        return min;
+
+    return (int)v;
 }
 
 void fade_rnd_RGB(RGB_Led_State *led)
 {
-    #define RAND_VAL 7 + 1
-    
-    // aktuellen wert setzen (wird linear zwischen den einzelnen rgb werten gefaded)
-    _update_PWM(    (float)(LED_PWM_LOOKUP_TABLE[ (int)led->r ] + led->target_r * led->time) , 
-                    (float)(LED_PWM_LOOKUP_TABLE[ (int)led->g ] + led->target_g * led->time) , 
-                    (float)(LED_PWM_LOOKUP_TABLE[ (int)led->b ] + led->target_b * led->time) );
+    #define RAND_VAL 3 + 1
     
     led->time++;
-    if(led->time >= led->std_time)
+    if( led->time >= led->std_time )
     {
         //fertig mit faden --> auf ziel setzen
         led->r += led->change_r;
@@ -176,71 +239,72 @@ void fade_rnd_RGB(RGB_Led_State *led)
             led->change_b = (rand()% RAND_VAL);
         }
 
-        //neues ziel bestimmen
-        led->target_r = (float)(LED_PWM_LOOKUP_TABLE[ (int)(led->r + led->change_r) ] - LED_PWM_LOOKUP_TABLE[ (int)led->r ]) / led->std_time;
-        led->target_g = (float)(LED_PWM_LOOKUP_TABLE[ (int)(led->g + led->change_g) ] - LED_PWM_LOOKUP_TABLE[ (int)led->g ]) / led->std_time;
-        led->target_b = (float)(LED_PWM_LOOKUP_TABLE[ (int)(led->b + led->change_b) ] - LED_PWM_LOOKUP_TABLE[ (int)led->b ]) / led->std_time;
+        // cur bestimmen
+        led->cur_r = LED_PWM_LOOKUP_TABLE[ (int)led->r ];
+        led->cur_g = LED_PWM_LOOKUP_TABLE[ (int)led->g ];
+        led->cur_b = LED_PWM_LOOKUP_TABLE[ (int)led->b ];
 
-        //die einzelnen schritte im 2048 bereich ausrechnen
-        //led->change_r = (LED_PWM_LOOKUP_TABLE[ (int)led->target_r ] - LED_PWM_LOOKUP_TABLE[ (int)led->r ])/led->std_time;
-        //led->change_g = (LED_PWM_LOOKUP_TABLE[ (int)led->target_g ] - LED_PWM_LOOKUP_TABLE[ (int)led->g ])/led->std_time;
-        //led->change_b = (LED_PWM_LOOKUP_TABLE[ (int)led->target_b ] - LED_PWM_LOOKUP_TABLE[ (int)led->b ])/led->std_time;
+        led->target_r = (float)(LED_PWM_LOOKUP_TABLE[ limit(led->r + led->change_r,0,255) ] - led->cur_r) / led->std_time;
+        led->target_g = (float)(LED_PWM_LOOKUP_TABLE[ limit(led->g + led->change_g,0,255) ] - led->cur_g) / led->std_time;
+        led->target_b = (float)(LED_PWM_LOOKUP_TABLE[ limit(led->b + led->change_b,0,255) ] - led->cur_b) / led->std_time;
 
         //wieder bei 0 anfangen
         led->time = 0; // zaehlt hoch bis led->std_time;
     }
-}
+    
+    // aktuellen wert setzen (wird linear zwischen den einzelnen rgb werten gefaded)
+    led->cur_r += led->target_r;
+    led->cur_g += led->target_g;
+    led->cur_b += led->target_b;
 
+/*
+    if( led->tmp != NULL )
+    {
+        char text[50];
+        text[0] = ' ';
+        ftoc(led->cur_r, text+1);
+        text[8] = ' ';
+        ftoc(led->target_r, text+9);
+        text[16] = ' ';
 
-/* IDEE:
-
-beim hoch faden:
-(LED_PWM_LOOKUP_TABLE[g+1] - LED_PWM_LOOKUP_TABLE[g]) / zeit für steps
-und in jedem step den TIM_OCInitStructure.TIM_Pulse += ((LED_PWM_LOOKUP_TABLE[g+1] - LED_PWM_LOOKUP_TABLE[g]) / tick-zeit)*tick
-
+        ftoc(led->cur_g, text+17);
+        text[24] = ' ';
+        ftoc(led->target_g, text+25);
+        text[32] = ' ';
+        
+        ftoc(led->cur_b, text+33);
+        text[40] = ' ';
+        ftoc(led->target_b, text+41);
+        
+        text[48] = '\n';
+        text[49] = 0;
+        struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
+        //strcpy(s->outputbuf , "huhu");
+        strcpy(s->outputbuf , text);
+    }
 */
 
-void update_PWM(int r,int g, int b)
-{
-    _update_PWM( LED_PWM_LOOKUP_TABLE[ (int)r ] , LED_PWM_LOOKUP_TABLE[ (int)g ] , LED_PWM_LOOKUP_TABLE[ (int)b ]);
-//    _update_PWM( r*2048/255 , g*2048/255 , b*2048/255);
+    _update_PWM( led );
+
 }
 
-// set values between 0 and 2047
-void _update_PWM(int r,int g, int b)
+void update_PWM(RGB_Led_State *led)
 {
-    TIM_OCInitTypeDef TIM_OCInitStructure;
-
-    // Setup channel 3 who is led to PB0 (green)
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //signal from the timer will be used to control the interrupt controller, so it must be Enable
-    TIM_OCInitStructure.TIM_Pulse = g;
-//    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;   // high state
-    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   // low state
-    TIM_OC3Init(TIM3, &TIM_OCInitStructure);
-    TIM_OC3PreloadConfig(TIM3, TIM_OCPreload_Enable); //PB0
+    led->cur_r = LED_PWM_LOOKUP_TABLE[ led->r ];
+    led->cur_g = LED_PWM_LOOKUP_TABLE[ led->g ];
+    led->cur_b = LED_PWM_LOOKUP_TABLE[ led->b ];
+    
+    _update_PWM(led);
+}
 
 
-    // Setup Channel 4 who is led to the PB1 (red)
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //signal from the timer will be used to control the interrupt controller, so it must be Enable
-    TIM_OCInitStructure.TIM_Pulse = r;
-    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   // low state
-    TIM_OC4Init(TIM3, &TIM_OCInitStructure);
-    TIM_OC4PreloadConfig(TIM3, TIM_OCPreload_Enable); //PB1
-
-
-    // Setup Channel 2 who is led to the PB5 (blue)
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; //signal from the timer will be used to control the interrupt controller, so it must be Enable
-    TIM_OCInitStructure.TIM_Pulse = b;
-    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;   // low state
-    TIM_OC2Init(TIM3, &TIM_OCInitStructure);
-    TIM_OC2PreloadConfig(TIM3, TIM_OCPreload_Enable); //PB5
-
-    TIM_ARRPreloadConfig(TIM3,ENABLE);
-    //  Enable the timer
-    TIM_Cmd(TIM3, ENABLE);
+// set values between 0 and 2047
+void _update_PWM(RGB_Led_State *led)
+{
+    /* Set the Capture Compare Register value */
+    TIM3->CCR4 = (int)led->cur_r;
+    TIM3->CCR3 = (int)led->cur_g;
+    TIM3->CCR2 = (int)led->cur_b;
 }
 
 

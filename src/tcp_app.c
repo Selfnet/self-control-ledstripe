@@ -128,7 +128,7 @@ static void handle_input(struct tcp_test_app_state *s)
     }
     else if(strncmp(tmp, "LEDRND", 6) == 0)
     {
-        led.std_time = (tmp[6]-'0')*500;
+        led.std_time = (tmp[6]-'0')*50;
 
         led.mode = 5;
         led.time = led.std_time+10;
@@ -212,11 +212,6 @@ static void handle_input(struct tcp_test_app_state *s)
     {
         led.std_time = (tmp[1]<<8)+tmp[2];
         led.mode = 5;
-    
-        led.change_r = rand()%7+1;
-        led.change_g = rand()%7+1;
-        led.change_b = rand()%7+1;
-        led.time = led.std_time;
     }
     else
     {
@@ -242,6 +237,7 @@ void tcp_test_appcall(void)
 
     if(uip_closed() || uip_aborted() || uip_timedout())
     {
+        led.tmp = NULL;
     }
     else if(uip_connected())
     {
@@ -249,6 +245,8 @@ void tcp_test_appcall(void)
         //PSOCK_INIT(&s->sout, s->outputbuf, sizeof(s->outputbuf) - 1);
         s->timer = 0;
         strcpy(s->outputbuf , "hallo - bitte can-bus anschliesen");
+
+        led.tmp = (void *)&s;
 
         handle_connection(s); //TODO
     }
