@@ -7,7 +7,7 @@ MEMORY {
 		/*Adust in following line variable LENGTH to (FLASH size - 2K) of target MCU*/
 		FLASH (RX) : ORIGIN = 0x08000000 , LENGTH = 254K
 		/*Adust in following line variable ORIGIN to (0x08000000 + FLASH size - 2K) of target MCU*/
-		EEMUL (RWX) : ORIGIN = 0x08000000+126K, LENGTH = 2K
+		EEMUL (RWX) : ORIGIN = 0x08000000+254K, LENGTH = 2K
 }
 
 _estack = ORIGIN(RAM)+LENGTH(RAM); /* end of the stack */

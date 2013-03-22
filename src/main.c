@@ -87,7 +87,7 @@ int main(void)
     SystemInit();
 
     // initalizes the pwm timer and start autofading mode for RGB-Leds
-    enable_PWM();
+    //enable_PWM();
 
     // initialize CAN-Bus and enable CAN Interrupts
     CAN_config();
