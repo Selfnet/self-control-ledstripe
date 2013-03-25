@@ -44,7 +44,7 @@ void handle_input(struct tcp_test_app_state *s)
     // EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
 
 
-    if(len >= 3 && tmp[0] == 1 && tmp[1] == 1 && tmp[2] == 1)
+    if(len >= 3 && (tmp[0] == 1 || tmp[1] == 1 || tmp[2] == 1) )
     {
         //ping vom server - einfach ignorieren
     }
@@ -66,12 +66,14 @@ void handle_input(struct tcp_test_app_state *s)
         }
         CAN_Transmit(CAN1, &TxMessage);
 
-        strcpy(s->outputbuf+s->outpt , "can msg send\n");
-        s->outpt += strlen("can msg send")+1;
-
-
         // *** print TxMessage struct ***
-            //CanMsg per Ethernet verschicken
+        //CanMsg per Ethernet verschicken
+        if(s->outpt + 24 + TxMessage.DLC < 128)
+        {
+            strcpy(s->outputbuf+s->outpt , "can msg send\n");
+            s->outpt += strlen("can msg send")+1;
+
+        
             s->outputbuf[ s->outpt++ ] = 'T';
             s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId)>>8; //sender0
             s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId);    //sender1
@@ -90,6 +92,7 @@ void handle_input(struct tcp_test_app_state *s)
             }
             s->outputbuf[ s->outpt++ ] = '\n'; //nullbyte anhängen
             s->outputbuf[ s->outpt++ ] = 0; //nullbyte anhängen
+        }
 
         LED_Toggle(1);
     }
@@ -134,6 +137,8 @@ handle_connection(struct tcp_test_app_state *s)
         handle_input(s);
     if( s->outpt > 0 )
     {
+        if(s->outpt >= 128)
+            s->outpt = 127;
         uip_send(s->outputbuf , s->outpt );
         memset(s->outputbuf, 0, s->outpt); //leeren
         s->outpt = 0;
