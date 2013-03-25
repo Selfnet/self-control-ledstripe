@@ -506,43 +506,9 @@ void ETH_IRQHandler(void)
 // *** CAN Interrupt ***
 void CAN1_RX0_IRQHandler(void)
 {
+    prozess_can_it();
     //CAN_ClearFlag(CAN1, CAN_FLAG_FMP0);
-    //uint8_t send_string[50];
-    //VCP_DataTx("CAN1_RX1_IRQHandler", 19);
-
-    CanRxMsg RxMessage;
-    RxMessage.StdId=0x00;
-    RxMessage.IDE=CAN_ID_STD;
-    RxMessage.DLC=0;
-    RxMessage.Data[0]=0x00;
-    RxMessage.Data[1]=0x00;
-    CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-
-    if( RxMessage.StdId == 0x11 && ( RxMessage.Data[0] == 0x01 || RxMessage.Data[0] == 0x02 ) )
-    {
-        if(RxMessage.Data[1] == 1) //On
-        {
-            LED_On(RxMessage.Data[0]);
-        }
-        else if(RxMessage.Data[1] == 2) //Off
-        {
-            LED_Off(RxMessage.Data[0]);
-        }
-        else if(RxMessage.Data[1] == 3) //Off
-        {
-            LED_Toggle(RxMessage.Data[0]);
-        }
-        /// TODO add USB send (when buffer overflow is fixed)
-        /*memcpy(send_string+0 , "Can: ", 5);
-        memcpy(send_string+4 , &RxMessage.StdId, 1);
-        memcpy(send_string+5 , ",", 1);
-        memcpy(send_string+6 , &RxMessage.Data[0], 1);
-        memcpy(send_string+7 , ",", 1);
-        memcpy(send_string+8 , &RxMessage.Data[1], 1);
-        memcpy(send_string+9 , "\n",1);
-        send_string[10] = 0x0;
-        VCP_DataTx(send_string, 10);*/
-    }
+    //CAN_ITConfig(CAN1, CAN_IT_FMP0, DISABLE);
 }
 
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/

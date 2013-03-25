@@ -2,6 +2,7 @@
 #include "tcp_app.h"
 #include "io-helper.h"
 #include "uip.h"
+#include "can.h"
 
 #include <string.h>
 
@@ -15,9 +16,9 @@
 
 /*---------------------------------------------------------------------------*/
 
-static void handle_input(struct tcp_test_app_state *s)
+void handle_input(struct tcp_test_app_state *s)
 {
-    char * tmp = (char *)uip_appdata;
+    char * tmp = ((char *)uip_appdata);
     int    len = uip_len;
     ////s->inputbuf = uip_appdata;
 
@@ -25,93 +26,74 @@ static void handle_input(struct tcp_test_app_state *s)
     ////memcpy(s->outputbuf , tmp , len);
     ////s->outputbuf[len+1] = 0;
 
-    //BSP:
-    //Idx: 0123456789012
-    //Str: SEND LED 1 ON
-    if(strncmp(tmp, "SEND", 4) == 0 && len > 10)
-    {
-        CanTxMsg TxMessage;
-        TxMessage.StdId=0x11;
-        TxMessage.RTR=CAN_RTR_DATA;
-        TxMessage.IDE=CAN_ID_STD;
-        TxMessage.DLC=2; //0 - 8
-        TxMessage.Data[0]=0x00;
-        TxMessage.Data[1]=0x00;
-        if(strncmp(tmp+5, "LED", 3) == 0)
-        {
-            if(strncmp(tmp+9, "1", 1) == 0)
-                TxMessage.Data[0]=1;
-            else
-                TxMessage.Data[0]=2;
-            
-            if(strncmp(tmp+11, "ON", 2) == 0)
-                TxMessage.Data[1]=1;
-            else if(strncmp(tmp+11, "OFF", 3) == 0)
-                TxMessage.Data[1]=2;
-            else
-                TxMessage.Data[1]=3;
-        }
-        LED_Toggle(1);
-        CAN_Transmit(CAN1, &TxMessage);
-        
-        /*uint8_t send_string[11];
-        memcpy(send_string+0 , "Can: ", 5);
-        memcpy(send_string+4 , &TxMessage.StdId, 1);
-        memcpy(send_string+5 , ",", 1);
-        memcpy(send_string+6 , &TxMessage.Data[0], 1);
-        memcpy(send_string+7 , ",", 1);
-        memcpy(send_string+8 , &TxMessage.Data[1], 1);
-        memcpy(send_string+9 , "\n",1);
-        send_string[10] = 0x0;
-        VCP_DataTx(send_string, 10);*/
-    }
-    /*else if(strncmp(tmp, "LEDOFF", 6) == 0)
-    {
-        led.target_r = 0;
-        led.target_g = 0;
-        led.target_b = 0;
-        led.mode = 0;
-        led.time = 1000;
-        start_fade(&led);
-    }
-    else if(strncmp(tmp, "LEDON", 5) == 0)
-    {
-        led.target_r = 255;
-        led.target_g = 255;
-        led.target_b = 255;
-        led.mode = 0;
-        led.time = 1000;
-        start_fade(&led);
-    }
-    else if(strncmp(tmp, "LEDRND", 6) == 0)
-    {
-        led.std_time = (tmp[6]-'0')*50;
 
-        led.mode = 5;
-        led.time = led.std_time+10;
-        strcpy(s->outputbuf, "LEDRND-MODE 5");
-    }
-    else if(strncmp(tmp, "MODE", 4) == 0)
-    {
-        led.mode = tmp[4]-'0';
-    }
-    else if(strncmp(tmp, "FADE", 4) == 0)
-    {
-        led.mode = 0;
-        led.target_r = 0;
-        led.target_g = 0;
-        led.target_b = 0;
-        led.time = (tmp[7]-'0')*1000;
-        if(tmp[4] == 'r')
-            led.target_r = 255;
-        if(tmp[5] == 'g')
-            led.target_g = 255;
-        if(tmp[6] == 'b')
-            led.target_b = 255;
-
-        start_fade(&led);
-    }*/
     // CAN functions
+
+    // *** erklärung zu can vars ***
+    //Sender        = RxMessage.ExtId & 0b111111111110000000    (11Bit)
+    //Type          = RxMessage.ExtId & 0b000000000001111111    (7Bit)
+    //Empfaenger    = RxMessage.StdId                           (11Bit)
+    //ID-Type       = RxMessage.IDE (CAN_Id_Standard or CAN_Id_Extended) DEFAULT=1 (immer extended)
+    //get_set?      = RxMessage.RTR: (1-> SendData (seter) | 0-> Request Data (geter))
+
+//                                              9876 54321098 7654321
+// 1111000011110000111100001111000011110000111100001 11100001 1110000
+
+    // ethernet bytes:
+    // SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
+    // EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
+
+
+    if(len >= 3 && tmp[0] == 1 && tmp[1] == 1 && tmp[2] == 1)
+    {
+        //ping vom server - einfach ignorieren
+    }
+    else if(len >= 4)
+    {
+        uint32_t recId = (((uint32_t)tmp[0])<<8)+tmp[1];
+        CanTxMsg TxMessage;
+        TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
+        TxMessage.ExtId = 0;
+        setRecipient(&TxMessage.ExtId , recId );                    //empfaenger
+        setSender(&TxMessage.ExtId, NODE_CAN_ID);                   //sender (hoeherwaertige bits)
+        setTyp(&TxMessage.ExtId , tmp[2]);                          //type   (niederwertige bits)
+        TxMessage.RTR = tmp[3]==1 ? CAN_RTR_Remote : CAN_RTR_Data;  //senden order abfragen
+        TxMessage.DLC = len - 4; //0 bis 8
+        int i;
+        for(i = 0 ; i <= len-4 ; i++)
+        {
+            TxMessage.Data[i] = tmp[i+4];
+        }
+        CAN_Transmit(CAN1, &TxMessage);
+
+        strcpy(s->outputbuf+s->outpt , "can msg send\n");
+        s->outpt += strlen("can msg send")+1;
+
+
+        // *** print TxMessage struct ***
+            //CanMsg per Ethernet verschicken
+            s->outputbuf[ s->outpt++ ] = 'T';
+            s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId)>>8; //sender0
+            s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId);    //sender1
+            
+            s->outputbuf[ s->outpt++ ] = getSender(TxMessage.ExtId)>>8;    //empfaenger0
+            s->outputbuf[ s->outpt++ ] = getSender(TxMessage.ExtId);       //empfaenger1
+            
+            s->outputbuf[ s->outpt++ ] = getTyp(TxMessage.ExtId);          //type
+
+            s->outputbuf[ s->outpt++ ] = ((TxMessage.RTR == CAN_RTR_Remote)? 1 : 0);  //send-request (RTR)
+
+            //data
+            for(i=0 ; i < TxMessage.DLC ; i++)
+            {
+                s->outputbuf[ s->outpt++ ] = TxMessage.Data[i];
+            }
+            s->outputbuf[ s->outpt++ ] = '\n'; //nullbyte anhängen
+            s->outputbuf[ s->outpt++ ] = 0; //nullbyte anhängen
+
+        LED_Toggle(1);
+    }
+/*
     else if(100 <= tmp[0] && tmp[0] <= 200 && len >= 2)
     {
         CanTxMsg TxMessage;
@@ -138,10 +120,10 @@ static void handle_input(struct tcp_test_app_state *s)
             else if(tmp[2] == 1) // off
                 GPIOB->BRR = GPIO_Pin_7;
         }
-    }
+    }*/
     else
     {
-        LED_Toggle(2);
+        //LED_Toggle(2);
     }
 }
 
@@ -150,10 +132,11 @@ handle_connection(struct tcp_test_app_state *s)
 {
     if( uip_newdata() )
         handle_input(s);
-    if( strlen(s->outputbuf) > 0 )
+    if( s->outpt > 0 )
     {
-        uip_send(s->outputbuf , strlen(s->outputbuf) );
-        memset(s->outputbuf, 0, 50); //leeren
+        uip_send(s->outputbuf , s->outpt );
+        memset(s->outputbuf, 0, s->outpt); //leeren
+        s->outpt = 0;
     }
 }
 
@@ -166,10 +149,10 @@ void tcp_test_appcall(void)
     }
     else if(uip_connected())
     {
-        //PSOCK_INIT(&s->sin, s->inputbuf, sizeof(s->inputbuf) - 1);
-        //PSOCK_INIT(&s->sout, s->outputbuf, sizeof(s->outputbuf) - 1);
         s->timer = 0;
-        strcpy(s->outputbuf , "hallo - bitte can-bus anschliesen");
+        s->outpt = 0;
+        strcpy(s->outputbuf+s->outpt , "hallo - bitte can-bus anschliesen");
+        s->outpt += strlen("hallo - bitte can-bus anschliesen");
 
         handle_connection(s); //TODO
     }
@@ -184,7 +167,7 @@ void tcp_test_appcall(void)
         }
         else
         {
-        s->timer = 0;
+            s->timer = 0;
         }
         handle_connection(s); //TODO
     }

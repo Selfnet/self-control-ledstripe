@@ -59,3 +59,9 @@ app2.a:
 clean:
 		rm -f *.o
 		rm -f app.a
+
+
+appclean:
+		rm -f *.o
+		rm -f app.a
+

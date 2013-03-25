@@ -164,7 +164,7 @@ uint32_t uIPMain(void)
     uip_init(); // (uip.c)
 
     // Init WEB server
-    uip_ipaddr(ipaddr, 10,43,100,111);
+    uip_ipaddr(ipaddr, 10,43,100,112);
     uip_sethostaddr(ipaddr); //ip
     uip_ipaddr(ipaddr, 10,43,0,254);
     uip_setdraddr(ipaddr);  //gw
