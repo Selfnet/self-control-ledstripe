@@ -43,26 +43,31 @@ void handle_input(struct tcp_test_app_state *s)
     // SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
     // EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
 
+    // 0x15 | extID0 | extID1 | extID2 | extID3 | len | DATA0 - DATA7
+    // 0x15 | extID0 | Proto  |  Empf  | Sender | len | DATA0 - DATA7
 
-    if(len >= 3 && (tmp[0] == 1 || tmp[1] == 1 || tmp[2] == 1) )
+    //ping vom server
+    if(len >= 2 && tmp[0] == 1 )
     {
-        //ping vom server - einfach ignorieren
+        s->outputbuf[ s->outpt++ ] = tmp[0];
+        s->outputbuf[ s->outpt++ ] = tmp[1];
     }
-    else if(len >= 4)
+    // can gateway nachricht
+    else if(tmp[0] == 0x15 && len >= 5 && len <= 14)
     {
-        uint32_t recId = (((uint32_t)tmp[0])<<8)+tmp[1];
+        uint32_t extID = *(uint32_t *)(uip_appdata+1);
+
         CanTxMsg TxMessage;
         TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
-        TxMessage.ExtId = 0;
-        setRecipient(&TxMessage.ExtId , recId );                    //empfaenger
-        setSender(&TxMessage.ExtId, NODE_CAN_ID);                   //sender (hoeherwaertige bits)
-        setTyp(&TxMessage.ExtId , tmp[2]);                          //type   (niederwertige bits)
-        TxMessage.RTR = tmp[3]==1 ? CAN_RTR_Remote : CAN_RTR_Data;  //senden order abfragen
-        TxMessage.DLC = len - 4; //0 bis 8
+        TxMessage.ExtId = extID;
+        TxMessage.RTR = 0;
+        TxMessage.DLC = tmp[5]; //0 bis 8
+        if(TxMessage.DLC > 8)
+            TxMessage.DLC = 8;
         int i;
-        for(i = 0 ; i <= len-4 ; i++)
+        for(i = 0 ; i <= TxMessage.DLC ; i++)
         {
-            TxMessage.Data[i] = tmp[i+4];
+            TxMessage.Data[i] = tmp[i+6];
         }
         CAN_Transmit(CAN1, &TxMessage);
 
@@ -73,7 +78,6 @@ void handle_input(struct tcp_test_app_state *s)
             strcpy(s->outputbuf+s->outpt , "can msg send\n");
             s->outpt += strlen("can msg send")+1;
 
-        
             s->outputbuf[ s->outpt++ ] = 'T';
             s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId)>>8; //sender0
             s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId);    //sender1
@@ -97,23 +101,6 @@ void handle_input(struct tcp_test_app_state *s)
         LED_Toggle(1);
     }
 /*
-    else if(100 <= tmp[0] && tmp[0] <= 200 && len >= 2)
-    {
-        CanTxMsg TxMessage;
-        TxMessage.StdId=0x10;
-        TxMessage.RTR=CAN_RTR_DATA;
-        TxMessage.IDE=CAN_ID_STD;
-        TxMessage.DLC=len; //0 bis 8
-        TxMessage.Data[0]=tmp[1]; //led nr
-        TxMessage.Data[1]=tmp[0]-100; //mode
-        int i;
-        for(i = 2; i < len && i <= 7; i++)
-        {
-            TxMessage.Data[i]=tmp[i]; //data i
-        }
-        CAN_Transmit(CAN1, &TxMessage);
-        LED_Toggle(1);
-    }
     else if(tmp[0] == 202) //light
     {
         if(tmp[1] == 1) //light 1
@@ -124,10 +111,6 @@ void handle_input(struct tcp_test_app_state *s)
                 GPIOB->BRR = GPIO_Pin_7;
         }
     }*/
-    else
-    {
-        //LED_Toggle(2);
-    }
 }
 
 static void

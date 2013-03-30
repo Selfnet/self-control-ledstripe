@@ -2,6 +2,7 @@
 #include "stm32f10x.h"
 #include "can.h"
 #include "uip.h"
+#include "io-helper.h"
 
 /**
   * @brief  Configures the CAN.
@@ -107,7 +108,9 @@ End-of-frame (EOF)	                7	Must be recessive (1)
 */
 
 // *** CAN Id Functions
-int getSender(uint32_t ExtId)
+// -->  TODO in macros umbauen
+
+/*int getSender(uint32_t ExtId)
 {
     return (ExtId>>(11+7)) & 0x7ff;
 }
@@ -135,40 +138,50 @@ void setRecipient(uint32_t *ExtId , int recipient)
 void setTyp(uint32_t *ExtId , int recipient)
 {
     *ExtId |= (((uint32_t)recipient) & 0x7f);
-}
+}*/
 
 
 // *** erklärung zu can vars ***
-//Sender        = RxMessage.ExtId & 0b11111111111000000000000000000 (11Bit)
-//Empfaenger    = RxMessage.ExtId & 0b00000000000111111111110000000 (11Bit)
-//Type          = RxMessage.ExtId & 0b00000000000000000000001111111 (7Bit)
+//Sender        = RxMessage.ExtId & 0b00000111111110000000000000000 (8Bit)
+//Empfaenger    = RxMessage.ExtId & 0b00000000000001111111100000000 (8Bit)
+//Type          = RxMessage.ExtId & 0b00000000000000000000011111111 (8Bit)
 //ID-Type       = RxMessage.IDE (CAN_Id_Standard or CAN_Id_Extended) DEFAULT=1 (immer extended)
-//get_set?      = RxMessage.RTR: (1-> SendData (seter) | 0-> Request Data (geter))
+//RTR           = RxMessage.RTR: immer 1 (nie daten anfragen)
 
 // ethernet bytes:
 // SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
 
+void send_pong(CanRxMsg RxMessage)
+{
+    //ping request
+    if( getTyp(RxMessage.ExtId) == CAN_PROTO_PING )
+    {
+        CanTxMsg TxMessage;
+        TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
+        TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
+        TxMessage.ExtId |= setSender( NODE_CAN_ID );
+        TxMessage.ExtId |= setType( CAN_PROTO_PONG );
+        TxMessage.ExtId |= setRecipient( getSender(RxMessage.ExtId) );
+        TxMessage.RTR = CAN_RTR_Data;                               // daten senden
 
+        // alle empfangen daten zurueckschicken
+        TxMessage.DLC = RxMessage.DLC;
+        int i;
+        for(i = 0 ; i < RxMessage.DLC ; i++)
+        {
+            TxMessage.Data[i] = RxMessage.Data[i];
+        }
+        CAN_Transmit(CAN1, &TxMessage);
+    }
+}
 
 void prozess_can_it(void)
 {
     LED_Toggle(1);
 
+
     CanRxMsg RxMessage;
     CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-
-    // *** erklärung zu can vars ***
-    //Sender        = RxMessage.ExtId & 0b111111111110000000    (11Bit)
-    //Type          = RxMessage.ExtId & 0b000000000001111111    (7Bit)
-    //Empfaenger    = RxMessage.StdId                           (11Bit)
-    //ID-Type       = RxMessage.IDE (CAN_Id_Standard or CAN_Id_Extended) DEFAULT=1 (immer extended)
-    //get_set?      = RxMessage.RTR: (1-> SendData (seter) | 0-> Request Data (geter))
-
-//                                              9876 54321098 7654321
-// 1111000011110000111100001111000011110000111100001 11100001 1110000
-
-    // ethernet bytes:
-    // SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
 
     if(RxMessage.IDE == CAN_Id_Standard)
     {
@@ -177,34 +190,46 @@ void prozess_can_it(void)
     else
     {
         LED_Toggle(2);
-        // wenn es an mich ist ORDER wenn es nicht von mir kommt
-        if( getRecipient(RxMessage.ExtId) == NODE_CAN_ID || getSender(RxMessage.ExtId) != NODE_CAN_ID )
+        // wenn es nicht von mir kommt
+        if( getSender(RxMessage.ExtId) != NODE_CAN_ID )
         {
-            LED_Toggle(1);
-            
-            // TODO send msg when finished
-            struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
-
-            //CanMsg per Ethernet verschicken
-            s->outputbuf[ s->outpt++ ] = 'R';
-            s->outputbuf[ s->outpt++ ] = getRecipient(RxMessage.ExtId)>>8; //sender0
-            s->outputbuf[ s->outpt++ ] = getRecipient(RxMessage.ExtId);    //sender1
-            
-            s->outputbuf[ s->outpt++ ] = getSender(RxMessage.ExtId)>>8;    //empfaenger0
-            s->outputbuf[ s->outpt++ ] = getSender(RxMessage.ExtId);       //empfaenger1
-            
-            s->outputbuf[ s->outpt++ ] = getTyp(RxMessage.ExtId);          //type
-
-            s->outputbuf[ s->outpt++ ] = ((RxMessage.RTR == CAN_RTR_REMOTE)? 1 : 0);  //send-request (RTR)
-
-            //data
-            int i;
-            for(i=0 ; i < RxMessage.DLC ; i++)
+            //PING
+            if( getTyp(RxMessage.ExtId) == CAN_PROTO_PING )
+                send_pong(RxMessage);
+            //SYNC
+            else if( getTyp(RxMessage.ExtId) == CAN_PROTO_SYNC )
+                if(RxMessage.Data[0] == 0)
+                    LED_Off(1);
+                else if(RxMessage.Data[0] == 1)
+                    LED_On(1);
+                else
+                    LED_Toggle(1);
+            else
             {
-                s->outputbuf[ s->outpt++ ] = RxMessage.Data[i];
+                // TODO send msg when finished
+                struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
+
+                //CanMsg per Ethernet verschicken
+                s->outputbuf[ s->outpt++ ] = 'R';
+                s->outputbuf[ s->outpt++ ] = getRecipient(RxMessage.ExtId)>>8; //sender0
+                s->outputbuf[ s->outpt++ ] = getRecipient(RxMessage.ExtId);    //sender1
+                
+                s->outputbuf[ s->outpt++ ] = getSender(RxMessage.ExtId)>>8;    //empfaenger0
+                s->outputbuf[ s->outpt++ ] = getSender(RxMessage.ExtId);       //empfaenger1
+                
+                s->outputbuf[ s->outpt++ ] = getTyp(RxMessage.ExtId);          //type
+
+                s->outputbuf[ s->outpt++ ] = ((RxMessage.RTR == CAN_RTR_REMOTE)? 1 : 0);  //send-request (RTR)
+
+                //data
+                int i;
+                for(i=0 ; i < RxMessage.DLC ; i++)
+                {
+                    s->outputbuf[ s->outpt++ ] = RxMessage.Data[i];
+                }
+                s->outputbuf[ s->outpt++ ] = '\n'; //nullbyte anhängen
+                s->outputbuf[ s->outpt++ ] = 0; //nullbyte anhängen
             }
-            s->outputbuf[ s->outpt++ ] = '\n'; //nullbyte anhängen
-            s->outputbuf[ s->outpt++ ] = 0; //nullbyte anhängen
         }
     }
 }
