@@ -5,24 +5,23 @@
 // Can functions
 void CAN_config(void);
 void prozess_can_it(void);
+void send_sync(char data);
 
-/*int getSender(uint32_t ExtId);
-int getRecipient(uint32_t ExtId);
-int getTyp(uint32_t ExtId);
-void setSender(uint32_t *ExtId , int recipient);
-void setRecipient(uint32_t *ExtId , int recipient);
-void setTyp(uint32_t *ExtId , int recipient);*/
 
 #define getSender(ExtId)    ( ( (ExtId)     & 0xff ) )
 #define getRecipient(ExtId) ( ( (ExtId>>8 ) & 0xff ) )
 #define getTyp(ExtId)       ( ( (ExtId>>16) & 0xff ) )
 
-#define setSender(X)    ( ( (X)     & 0xff ) )
-#define setRecipient(X) ( ( (X<<8)  & 0xff ) )
-#define setType(X)       ( ( (X<<16) & 0xff ) )
+#define setSender(X)        ( ( (X)         & 0xff ) )
+#define setRecipient(X)     ( ( (X<<8)      & 0xff00 ) )
+#define setType(X)          ( ( (X<<16)     & 0xff0000 ) )
 
 //NODE_CAN_ID = 32 = 0x20 = 0b100000
-#define NODE_CAN_ID 0x20
+#ifdef TEST_GATEWAY
+    #define NODE_CAN_ID 0x21
+#else
+    #define NODE_CAN_ID 0x20
+#endif
 #define NODE_CAN_BROADCAST 0xFF
 
 #define CAN_PROTO_SYNC 0x0A

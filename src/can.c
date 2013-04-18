@@ -107,40 +107,6 @@ ACK delimiter	                    1	Must be recessive (1)
 End-of-frame (EOF)	                7	Must be recessive (1)
 */
 
-// *** CAN Id Functions
-// -->  TODO in macros umbauen
-
-/*int getSender(uint32_t ExtId)
-{
-    return (ExtId>>(11+7)) & 0x7ff;
-}
-
-int getRecipient(uint32_t ExtId)
-{
-    return (ExtId>>(7)) & 0x7ff;
-}
-
-int getTyp(uint32_t ExtId)
-{
-    return (ExtId & 0x7f);
-}
-
-void setSender(uint32_t *ExtId , int recipient)
-{
-    *ExtId |= (((uint32_t)recipient) & 0x7ff)<<(11+7);
-}
-
-void setRecipient(uint32_t *ExtId , int recipient)
-{
-    *ExtId |= (((uint32_t)recipient) & 0x7ff)<<7;
-}
-
-void setTyp(uint32_t *ExtId , int recipient)
-{
-    *ExtId |= (((uint32_t)recipient) & 0x7f);
-}*/
-
-
 // *** erklärung zu can vars ***
 //Sender        = RxMessage.ExtId & 0b00000111111110000000000000000 (8Bit)
 //Empfaenger    = RxMessage.ExtId & 0b00000000000001111111100000000 (8Bit)
@@ -175,11 +141,22 @@ void send_pong(CanRxMsg RxMessage)
     }
 }
 
+void send_sync(char data)
+{
+    CanTxMsg TxMessage;
+    TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
+    TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
+    TxMessage.ExtId |= setSender( NODE_CAN_ID );
+    TxMessage.ExtId |= setType( CAN_PROTO_SYNC );
+    TxMessage.ExtId |= setRecipient( NODE_CAN_BROADCAST );
+    TxMessage.RTR = 0;
+    TxMessage.DLC = 1;
+    TxMessage.Data[0] = data;
+    CAN_Transmit(CAN1, &TxMessage);
+}
+
 void prozess_can_it(void)
 {
-    LED_Toggle(1);
-
-
     CanRxMsg RxMessage;
     CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
 
@@ -189,46 +166,45 @@ void prozess_can_it(void)
     }
     else
     {
-        LED_Toggle(2);
         // wenn es nicht von mir kommt
-        if( getSender(RxMessage.ExtId) != NODE_CAN_ID )
+        if( getRecipient(RxMessage.ExtId) == NODE_CAN_ID || getRecipient(RxMessage.ExtId) == NODE_CAN_BROADCAST )
+        //if( getSender(RxMessage.ExtId) != NODE_CAN_ID ) //wenn man auf alles hören will
         {
             //PING
             if( getTyp(RxMessage.ExtId) == CAN_PROTO_PING )
                 send_pong(RxMessage);
             //SYNC
             else if( getTyp(RxMessage.ExtId) == CAN_PROTO_SYNC )
+            {
                 if(RxMessage.Data[0] == 0)
-                    LED_Off(1);
+                    LED_Off(2);
                 else if(RxMessage.Data[0] == 1)
-                    LED_On(1);
+                    LED_On(2);
                 else
-                    LED_Toggle(1);
-            else
+                    LED_Toggle(2);
+            }
+            else if(uip_conn != 0) // wenn tcp vorhanden antwort raushauen
             {
                 // TODO send msg when finished
-                struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
-
-                //CanMsg per Ethernet verschicken
-                s->outputbuf[ s->outpt++ ] = 'R';
-                s->outputbuf[ s->outpt++ ] = getRecipient(RxMessage.ExtId)>>8; //sender0
-                s->outputbuf[ s->outpt++ ] = getRecipient(RxMessage.ExtId);    //sender1
-                
-                s->outputbuf[ s->outpt++ ] = getSender(RxMessage.ExtId)>>8;    //empfaenger0
-                s->outputbuf[ s->outpt++ ] = getSender(RxMessage.ExtId);       //empfaenger1
-                
-                s->outputbuf[ s->outpt++ ] = getTyp(RxMessage.ExtId);          //type
-
-                s->outputbuf[ s->outpt++ ] = ((RxMessage.RTR == CAN_RTR_REMOTE)? 1 : 0);  //send-request (RTR)
-
-                //data
-                int i;
-                for(i=0 ; i < RxMessage.DLC ; i++)
+                uip_tcp_appstate_t  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
+                if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0) //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
                 {
-                    s->outputbuf[ s->outpt++ ] = RxMessage.Data[i];
+                    int i;
+
+                    //CanMsg per Ethernet verschicken
+                    send_tcp(s, "R CAN RECEIVED", 14);
+                    append_to_cur_tcp(s, getTyp(RxMessage.ExtId) );
+                    append_to_cur_tcp(s, getRecipient(RxMessage.ExtId) );
+                    append_to_cur_tcp(s, getSender(RxMessage.ExtId) );
+
+                    //data
+                    
+                    for(i=0 ; i < RxMessage.DLC ; i++)
+                    {
+                        append_to_cur_tcp(s, RxMessage.Data[i] );
+                    }
+                    //append_to_cur_tcp(s, RxMessage.Data[ RxMessage.DLC-1 ] );
                 }
-                s->outputbuf[ s->outpt++ ] = '\n'; //nullbyte anhängen
-                s->outputbuf[ s->outpt++ ] = 0; //nullbyte anhängen
             }
         }
     }

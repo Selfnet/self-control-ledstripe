@@ -22,6 +22,8 @@
 #include "includes.h"
 #include "io-helper.h" //dirks button+led func
 
+#include "ethernet_init.h"
+
 #include "usb_core.h"
 #include "usbd_usr.h"
 #include "usbd_core.h"

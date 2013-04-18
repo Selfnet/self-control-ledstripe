@@ -90,7 +90,7 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_CONF_MAX_CONNECTIONS 40
+#define UIP_CONF_MAX_CONNECTIONS 5
 
 /**
  * Maximum number of listening TCP ports.
@@ -139,7 +139,7 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_CONF_STATISTICS      1
+#define UIP_CONF_STATISTICS      0
 
 /* Here we include the header file for the application(s) we use in
    our project. */

@@ -245,7 +245,8 @@ void TIM6_IRQHandler(void)
             {
                 // TODO send msg when finished
                 struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
-                strcpy(s->outputbuf , "fading finished");
+                //strcpy(s->outputbuf , "fading finished");
+                send_ascii("fading finished", strlen("fading finished") );
             }
         }
         else if(led.mode == 3)
@@ -266,21 +267,8 @@ void EXTI0_IRQHandler(void) //Button2
     //Check if EXTI_Line0 is asserted
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
-        //LED_Off(1);
-        //GPIOB->BRR = GPIO_Pin_7;
-        led.mode = 9;
-        led.cur_b -= 100;
-        led.cur_r = 0;
-        led.cur_g = 0;
-        if(led.cur_r >= 0 && led.cur_r <= 2047 && led.cur_g >= 0 && led.cur_g <= 2047 && led.cur_b >= 0 && led.cur_b <= 2047)
-            ;//_update_PWM( &led );
-        else
-        {
-            LED_Toggle(2);
-            led.cur_b = 0;
-        }
-        _update_PWM( &led );
-
+        send_sync(1);
+        LED_On(2);
     }
     
     //we need to clear line pending bit manually

@@ -3,6 +3,7 @@
 #ifndef __TCP_APP_H__
 #define __TCP_APP_H__
 
+#include <stdint.h>
 
 //#include "psock.h"
 
@@ -12,23 +13,20 @@
 void tcp_test_appcall(void);
 
 
+#define TCP_APP_MAX_QUEUE_LEN 10
+#define TCP_APP_BUFFER_SIZE 256
+
 //das daten struct das im uip_conn struct mitgespeichert wird und somit daten fürs eigentliche zeug das man pro verbindung brauch zu halten
 
 struct tcp_test_app_state {
-  unsigned char timer;
-  //struct psock sin, sout;
-  //struct pt outputpt;
-  char inputbuf[128];
-  char outputbuf[128];
-  int  outpt;
-  //char filename[20];
-  //char state;
-  //struct httpd_fs_file file;
-  //int len;
-  //char *scriptptr;
-  //int scriptlen;
-
-  //unsigned short count;
+    unsigned char timer;
+    //char inputbuf[128];
+    
+    char output_buf[TCP_APP_BUFFER_SIZE];
+    char *output_buf_pt;
+    
+    char * output_queue_pt[TCP_APP_MAX_QUEUE_LEN];
+    uint8_t output_queue_pos;
 };
 
 typedef struct tcp_test_app_state uip_tcp_appstate_t;

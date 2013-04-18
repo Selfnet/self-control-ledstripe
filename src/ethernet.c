@@ -144,7 +144,7 @@ uint32_t uIPMain(void)
 {
     uint32_t i;
     uip_ipaddr_t ipaddr;
-    struct timer periodic_timer, arp_timer;
+    struct timer periodic_timer, arp_timer, can_sync_timer;
 
     LED_On(2);
 
@@ -153,6 +153,8 @@ uint32_t uIPMain(void)
 
     timer_set(&periodic_timer, CLOCK_SECOND / 2);
     timer_set(&arp_timer, CLOCK_SECOND * 10);
+    timer_set(&can_sync_timer, CLOCK_SECOND / 8); //1x pro sec wird gesynced
+    
 
     // Initialize the ethernet device driver
     // Init MAC
@@ -164,7 +166,11 @@ uint32_t uIPMain(void)
     uip_init(); // (uip.c)
 
     // Init WEB server
-    uip_ipaddr(ipaddr, 10,43,100,112);
+    #ifdef TEST_GATEWAY
+        uip_ipaddr(ipaddr, 10,43,100,111);
+    #else
+        uip_ipaddr(ipaddr, 10,43,100,112);
+    #endif
     uip_sethostaddr(ipaddr); //ip
     uip_ipaddr(ipaddr, 10,43,0,254);
     uip_setdraddr(ipaddr);  //gw
@@ -185,6 +191,15 @@ uint32_t uIPMain(void)
   
     while(1)
     {
+        if(timer_expired(&can_sync_timer))
+        {
+            timer_reset(&can_sync_timer);
+            #ifndef TEST_GATEWAY
+            send_sync(3);
+            LED_Toggle(2);
+            #endif
+        }
+    
         uip_len = tapdev_read(uip_buf);
         if(uip_len > 0) //read input
         {

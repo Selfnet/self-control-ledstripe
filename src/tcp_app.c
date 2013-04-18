@@ -14,30 +14,82 @@
 #define ISO_nl      0x0a
 
 
+void send_ascii(uint32_t len, char *txt)
+{
+//    send_tcp( 
+//    s->outpt += memcpy( s->outputbuf+s->outpt , txt , len );
+}
+
+
+int send_tcp(uip_tcp_appstate_t *s, char *txt, uint16_t len)
+{
+    if(s == 0)
+        return -3;
+
+    //queue voll
+    if(s->output_queue_pos >= TCP_APP_MAX_QUEUE_LEN)
+        return -2;
+
+    if( (s->output_queue_pt[ s->output_queue_pos ] + len + 2 ) - s->output_buf >= TCP_APP_BUFFER_SIZE)
+        return -1;
+
+    // hole aktuelle pos und length
+    s->output_buf_pt = s->output_queue_pt[ s->output_queue_pos ];
+    uint16_t *l = (uint16_t *)s->output_buf_pt;
+
+    //kopiere daten in buffer und setze queuept
+    if( memcpy( s->output_buf_pt+2 , txt , len ) )
+    {
+        *l = len;
+        s->output_queue_pos += 1;
+        s->output_queue_pt[ s->output_queue_pos ] = s->output_buf_pt+len+2;
+        return 1;
+    }
+
+    return -3;
+}
+
+int append_to_cur_tcp(uip_tcp_appstate_t *s, char c)
+{
+    if(s == 0)
+        return -3;
+
+    //queue schon zuvoll
+    if(s->output_queue_pos > 10)
+        return -2;
+
+    // nachricht passt nicht mehr in buffer
+    s->output_buf_pt = s->output_queue_pt[ s->output_queue_pos ];
+    if( s->output_buf_pt - s->output_buf + 1 >= TCP_APP_BUFFER_SIZE)
+        return -1;
+
+    s->output_buf_pt = s->output_queue_pt[ s->output_queue_pos-1 ];
+    uint16_t *l = (uint16_t *)s->output_buf_pt;
+
+    *l += 1;
+
+    *(*l + s->output_buf_pt + 1) = c;
+
+    //set the next start to the correct address
+    s->output_queue_pt[ s->output_queue_pos ] = s->output_buf_pt+*l+2;
+
+    //*(char *)(s->output_queue_pt[ s->output_queue_pos ] + (++ (*(uint16_t *)s->output_queue_pt[ s->output_queue_pos ]))) = c;
+    return 1;
+}
+
 /*---------------------------------------------------------------------------*/
 
-void handle_input(struct tcp_test_app_state *s)
+void handle_input(uip_tcp_appstate_t *s)
 {
     char * tmp = ((char *)uip_appdata);
     int    len = uip_len;
-    ////s->inputbuf = uip_appdata;
-
-    //VCP_DataTx(tmp, len );
-    ////memcpy(s->outputbuf , tmp , len);
-    ////s->outputbuf[len+1] = 0;
-
-
-    // CAN functions
 
     // *** erklärung zu can vars ***
-    //Sender        = RxMessage.ExtId & 0b111111111110000000    (11Bit)
-    //Type          = RxMessage.ExtId & 0b000000000001111111    (7Bit)
-    //Empfaenger    = RxMessage.StdId                           (11Bit)
+    //Sender        = RxMessage.ExtId & 0b00000111111110000000000000000 (8Bit)
+    //Empfaenger    = RxMessage.ExtId & 0b00000000000001111111100000000 (8Bit)
+    //Type          = RxMessage.ExtId & 0b00000000000000000000011111111 (8Bit)
     //ID-Type       = RxMessage.IDE (CAN_Id_Standard or CAN_Id_Extended) DEFAULT=1 (immer extended)
-    //get_set?      = RxMessage.RTR: (1-> SendData (seter) | 0-> Request Data (geter))
-
-//                                              9876 54321098 7654321
-// 1111000011110000111100001111000011110000111100001 11100001 1110000
+    //RTR           = RxMessage.RTR: immer 1 (nie daten anfragen)
 
     // ethernet bytes:
     // SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
@@ -47,19 +99,23 @@ void handle_input(struct tcp_test_app_state *s)
     // 0x15 | extID0 | Proto  |  Empf  | Sender | len | DATA0 - DATA7
 
     //ping vom server
-    if(len >= 2 && tmp[0] == 1 )
+    if(len == 2 && tmp[0] == 0x01 )
     {
-        s->outputbuf[ s->outpt++ ] = tmp[0];
-        s->outputbuf[ s->outpt++ ] = tmp[1];
+        send_tcp(s, tmp, 2);
+    }
+    else if(tmp[0] == 'A')
+    {
+        send_tcp(s, tmp , len);
     }
     // can gateway nachricht
     else if(tmp[0] == 0x15 && len >= 5 && len <= 14)
     {
-        uint32_t extID = *(uint32_t *)(uip_appdata+1);
+        //              Sender   Empf     Proto    extID    (reverse due to endianess)
+        char extID[] = {tmp[4] , tmp[3] , tmp[2] , tmp[1]};
 
         CanTxMsg TxMessage;
         TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
-        TxMessage.ExtId = extID;
+        TxMessage.ExtId = *((uint32_t *)extID);
         TxMessage.RTR = 0;
         TxMessage.DLC = tmp[5]; //0 bis 8
         if(TxMessage.DLC > 8)
@@ -71,31 +127,22 @@ void handle_input(struct tcp_test_app_state *s)
         }
         CAN_Transmit(CAN1, &TxMessage);
 
+        //send_tcp(s, "SND", 3);
+
         // *** print TxMessage struct ***
         //CanMsg per Ethernet verschicken
-        if(s->outpt + 24 + TxMessage.DLC < 128)
+        //if(s->outpt + 24 + TxMessage.DLC < 128)
         {
-            strcpy(s->outputbuf+s->outpt , "can msg send\n");
-            s->outpt += strlen("can msg send")+1;
-
-            s->outputbuf[ s->outpt++ ] = 'T';
-            s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId)>>8; //sender0
-            s->outputbuf[ s->outpt++ ] = getRecipient(TxMessage.ExtId);    //sender1
-            
-            s->outputbuf[ s->outpt++ ] = getSender(TxMessage.ExtId)>>8;    //empfaenger0
-            s->outputbuf[ s->outpt++ ] = getSender(TxMessage.ExtId);       //empfaenger1
-            
-            s->outputbuf[ s->outpt++ ] = getTyp(TxMessage.ExtId);          //type
-
-            s->outputbuf[ s->outpt++ ] = ((TxMessage.RTR == CAN_RTR_Remote)? 1 : 0);  //send-request (RTR)
+            //send_tcp(s, "T", 1);
+            //append_to_cur_tcp(s, getTyp(TxMessage.ExtId) );
+            //append_to_cur_tcp(s, getRecipient(TxMessage.ExtId) );
+            //append_to_cur_tcp(s, getSender(TxMessage.ExtId) );
 
             //data
-            for(i=0 ; i < TxMessage.DLC ; i++)
+            /*for(i=0 ; i < TxMessage.DLC ; i++)
             {
-                s->outputbuf[ s->outpt++ ] = TxMessage.Data[i];
-            }
-            s->outputbuf[ s->outpt++ ] = '\n'; //nullbyte anhängen
-            s->outputbuf[ s->outpt++ ] = 0; //nullbyte anhängen
+                append_to_cur_tcp(s, TxMessage.Data[i] );
+            }*/
         }
 
         LED_Toggle(1);
@@ -114,50 +161,57 @@ void handle_input(struct tcp_test_app_state *s)
 }
 
 static void
-handle_connection(struct tcp_test_app_state *s)
+handle_connection(uip_tcp_appstate_t *s)
 {
     if( uip_newdata() )
         handle_input(s);
-    if( s->outpt > 0 )
+    if( s != 0 && s->output_queue_pos > 0 )
     {
-        if(s->outpt >= 128)
-            s->outpt = 127;
-        uip_send(s->outputbuf , s->outpt );
-        memset(s->outputbuf, 0, s->outpt); //leeren
-        s->outpt = 0;
+        int len = s->output_queue_pt[ s->output_queue_pos ] - s->output_buf;
+        uip_send(s->output_buf , len );
+        memset(s->output_buf, 0, len); //leeren
+        s->output_queue_pos = 0;
+        s->output_queue_pt[0] = s->output_buf;
     }
 }
 
 void tcp_test_appcall(void)
 {
-    struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
+    struct tcp_test_app_state  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
 
     if(uip_closed() || uip_aborted() || uip_timedout())
     {
     }
-    else if(uip_connected())
+    else if(uip_connected()) //neue verbindung
     {
+        // tcp_app_data struct initalisieren
         s->timer = 0;
-        s->outpt = 0;
-        strcpy(s->outputbuf+s->outpt , "hallo - bitte can-bus anschliesen");
-        s->outpt += strlen("hallo - bitte can-bus anschliesen");
+        memset(s->output_buf, 0, TCP_APP_BUFFER_SIZE); //leeren
+        s->output_queue_pos = 0;
+        s->output_queue_pt[0] = s->output_buf;
 
-        handle_connection(s); //TODO
+        #ifdef TEST_GATEWAY
+            send_tcp(s, "hallo - ich bin test node" , strlen("hallo - ich bin test node"));
+        #else
+            send_tcp(s, "hallo - ich bin gateway" , strlen("hallo - ich bin gateway"));
+        #endif
+        append_to_cur_tcp(s, '!');
+
+        handle_connection(s);
     }
     else if(s != 0)
     {
         if(uip_poll())
         {
             ++s->timer;
-            //strcpy(s->outputbuf+strlen(s->outputbuf) , "Timer");
             if(s->timer >= 20)
-                uip_abort(); //TimeOut
+                uip_abort(); //Timeout
         }
         else
         {
             s->timer = 0;
         }
-        handle_connection(s); //TODO
+        handle_connection(s);
     }
     else
     {
