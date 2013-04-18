@@ -3,6 +3,7 @@
 #include "can.h"
 #include "uip.h"
 #include "io-helper.h"
+#include "tcp_app.h"
 
 /**
   * @brief  Configures the CAN.
@@ -141,6 +142,24 @@ void send_pong(CanRxMsg RxMessage)
     }
 }
 
+uint32_t last_ping_send = 0;
+
+uint32_t send_ping(char data)
+{
+    CanTxMsg TxMessage;
+    TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
+    TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
+    TxMessage.ExtId |= setSender( NODE_CAN_ID );
+    TxMessage.ExtId |= setType( CAN_PROTO_PING );
+    TxMessage.ExtId |= setRecipient( NODE_CAN_BROADCAST );
+    TxMessage.RTR = 0;
+    TxMessage.DLC = 1;
+    TxMessage.Data[0] = data;
+    CAN_Transmit(CAN1, &TxMessage);
+    last_ping_send = SysTick->VAL;
+}
+
+
 void send_sync(char data)
 {
     CanTxMsg TxMessage;
@@ -154,6 +173,7 @@ void send_sync(char data)
     TxMessage.Data[0] = data;
     CAN_Transmit(CAN1, &TxMessage);
 }
+
 
 void prozess_can_it(void)
 {
@@ -183,27 +203,40 @@ void prozess_can_it(void)
                 else
                     LED_Toggle(2);
             }
-            else if(uip_conn != 0) // wenn tcp vorhanden antwort raushauen
+            else
             {
-                // TODO send msg when finished
-                uip_tcp_appstate_t  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
-                if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0) //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
+                if(uip_conn != 0) // wenn tcp vorhanden antwort raushauen
                 {
-                    int i;
-
-                    //CanMsg per Ethernet verschicken
-                    send_tcp(s, "R CAN RECEIVED", 14);
-                    append_to_cur_tcp(s, getTyp(RxMessage.ExtId) );
-                    append_to_cur_tcp(s, getRecipient(RxMessage.ExtId) );
-                    append_to_cur_tcp(s, getSender(RxMessage.ExtId) );
-
-                    //data
-                    
-                    for(i=0 ; i < RxMessage.DLC ; i++)
+                    // TODO send msg when finished
+                    uip_tcp_appstate_t  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
+                    if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0) //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
                     {
-                        append_to_cur_tcp(s, RxMessage.Data[i] );
+                        int i;
+
+                        //CanMsg per Ethernet verschicken
+                        send_tcp(s, "", 0);
+                        append_to_cur_tcp(s, 0x15 );
+                        append_to_cur_tcp(s, 0x00 );
+                        append_to_cur_tcp(s, getTyp(RxMessage.ExtId) );
+                        append_to_cur_tcp(s, getRecipient(RxMessage.ExtId) );
+                        append_to_cur_tcp(s, getSender(RxMessage.ExtId) );
+                        append_to_cur_tcp(s, RxMessage.DLC );
+                        //data
+                        
+                        for(i=0 ; i < RxMessage.DLC ; i++)
+                        {
+                            append_to_cur_tcp(s, RxMessage.Data[i] );
+                        }
+                        
+                        //append the time between send and receive
+                        if( getTyp(RxMessage.ExtId) == CAN_PROTO_PONG )
+                        {
+                            append_to_cur_tcp(s, ((SysTick->VAL - last_ping_send)>>8) & 0xFF );
+                            append_to_cur_tcp(s, (SysTick->VAL - last_ping_send) & 0xFF );
+                        }
+                        
+                        //append_to_cur_tcp(s, RxMessage.Data[ RxMessage.DLC-1 ] );
                     }
-                    //append_to_cur_tcp(s, RxMessage.Data[ RxMessage.DLC-1 ] );
                 }
             }
         }

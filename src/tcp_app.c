@@ -38,7 +38,7 @@ int send_tcp(uip_tcp_appstate_t *s, char *txt, uint16_t len)
     uint16_t *l = (uint16_t *)s->output_buf_pt;
 
     //kopiere daten in buffer und setze queuept
-    if( memcpy( s->output_buf_pt+2 , txt , len ) )
+    if( memcpy( s->output_buf_pt+2 , txt , len ) || len == 0 )
     {
         *l = len;
         s->output_queue_pos += 1;
@@ -204,7 +204,7 @@ void tcp_test_appcall(void)
         if(uip_poll())
         {
             ++s->timer;
-            if(s->timer >= 20)
+            if(s->timer >= 200)
                 uip_abort(); //Timeout
         }
         else

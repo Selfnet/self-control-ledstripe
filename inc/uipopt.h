@@ -141,9 +141,16 @@
 #define UIP_ETHADDR4    0xFF  /**< The fifth octet of the Ethernet
 				 address if UIP_FIXEDETHADDR is
 				 1. \hideinitializer */
-#define UIP_ETHADDR5    0xFF  /**< The sixth octet of the Ethernet
+
+#ifdef TEST_GATEWAY
+    #define UIP_ETHADDR5    0xEE  /**< The sixth octet of the Ethernet
 				 address if UIP_FIXEDETHADDR is
 				 1. \hideinitializer */
+#else
+    #define UIP_ETHADDR5    0xDD  /**< The sixth octet of the Ethernet
+				 address if UIP_FIXEDETHADDR is
+				 1. \hideinitializer */
+#endif
 
 
 /** @} */

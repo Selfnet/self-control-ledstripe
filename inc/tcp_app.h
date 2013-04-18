@@ -31,4 +31,10 @@ struct tcp_test_app_state {
 
 typedef struct tcp_test_app_state uip_tcp_appstate_t;
 
+
+void send_ascii(uint32_t len, char *txt);
+int send_tcp(uip_tcp_appstate_t *s, char *txt, uint16_t len);
+int append_to_cur_tcp(uip_tcp_appstate_t *s, char c);
+
+
 #endif

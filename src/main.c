@@ -45,7 +45,6 @@
 uint32_t CriticalSecCntr;
 USART_InitTypeDef USART_InitStructure;
 
-
 __ALIGN_BEGIN USB_OTG_CORE_HANDLE    USB_OTG_dev __ALIGN_END ;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -65,6 +64,7 @@ void SysTickStart(uint32_t Tick)
     SysTick->CTRL = 1;
 }
 
+
 void SysTickStop(void)
 {
     SysTick->CTRL = 0;
@@ -78,8 +78,11 @@ void SysTickStop(void)
 */
 int main(void)
 {
+    SysTickStart(0xFFFF);
+
     /* Button Init */
     button_init();
+
 
     /* LED Init */
     LED_init();

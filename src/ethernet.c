@@ -13,6 +13,7 @@
 #define BUF ((struct uip_eth_hdr *)&uip_buf[0])
 
 #include "led_pwm.h"
+#include "can.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -151,7 +152,8 @@ uint32_t uIPMain(void)
     // Sys timer init 1/100 sec tick
     clock_init(2);
 
-    timer_set(&periodic_timer, CLOCK_SECOND / 2);
+//    timer_set(&periodic_timer, CLOCK_SECOND / 2);
+    timer_set(&periodic_timer, CLOCK_SECOND / 10);
     timer_set(&arp_timer, CLOCK_SECOND * 10);
     timer_set(&can_sync_timer, CLOCK_SECOND / 8); //1x pro sec wird gesynced
     
@@ -181,14 +183,14 @@ uint32_t uIPMain(void)
     uip_listen(HTONS(23));
     //uip_listen(HTONS(80));
 
-    VCP_DataTx("Listen...\n", 11);
+    //VCP_DataTx("Listen...\n", 11);
 
     LED_Off(1);
 
     CanRxMsg RxMessage;
     int can_last_msg_id = 0;
     uint32_t nCount;
-  
+
     while(1)
     {
         if(timer_expired(&can_sync_timer))

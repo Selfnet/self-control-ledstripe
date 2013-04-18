@@ -27,17 +27,19 @@ extern void USB_OTGFS1_GlobalHandler(void);
 #include "io-helper.h"
 #include "uip.h"
 #include "led_pwm.h"
+#include "tcp_app.h"
+#include "can.h"
 
 
 #include <string.h>
 
-
+/*
 //usb
 #include "usb_core.h"
 #include "usbd_core.h"
 #include "usbd_cdc_core.h"
 //send
-#include "usbd_cdc_vcp.h"
+#include "usbd_cdc_vcp.h"*/
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,12 +50,14 @@ extern void USB_OTGFS1_GlobalHandler(void);
 /* Private functions ---------------------------------------------------------*/
 
 //usb
+/*
 extern USB_OTG_CORE_HANDLE                  USB_OTG_dev;
 extern uint32_t USBD_OTG_ISR_Handler        (USB_OTG_CORE_HANDLE *pdev);
 #ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED 
 extern uint32_t USBD_OTG_EP1IN_ISR_Handler  (USB_OTG_CORE_HANDLE *pdev);
 extern uint32_t USBD_OTG_EP1OUT_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
 #endif
+*/
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Exceptions Handlers                         */
@@ -165,7 +169,7 @@ void SysTick_Handler(void)
   * @param  None
   * @retval None
   */
-void OTG_FS_WKUP_IRQHandler(void) //fuer usb
+/*void OTG_FS_WKUP_IRQHandler(void) //fuer usb
 {
     if(USB_OTG_dev.cfg.low_power)
     {
@@ -174,17 +178,17 @@ void OTG_FS_WKUP_IRQHandler(void) //fuer usb
         USB_OTG_UngateClock(&USB_OTG_dev);
     }
     EXTI_ClearITPendingBit(EXTI_Line18);
-}
+}*/
 
 /**
   * @brief  This function handles OTG_HS Handler.
   * @param  None
   * @retval None
   */
-void OTG_FS_IRQHandler(void) //fuer usb
+/*void OTG_FS_IRQHandler(void) //fuer usb
 {
     USBD_OTG_ISR_Handler (&USB_OTG_dev);
-}
+}*/
 
 
 /*******************************************************************************
@@ -267,6 +271,7 @@ void EXTI0_IRQHandler(void) //Button2
     //Check if EXTI_Line0 is asserted
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
+        // alle orangen leds on
         send_sync(1);
         LED_On(2);
     }
