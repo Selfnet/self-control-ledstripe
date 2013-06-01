@@ -159,6 +159,27 @@ uint32_t send_ping(char data)
     last_ping_send = SysTick->VAL;
 }
 
+void send_led_msg(char data[8], uint8_t len)
+{
+    //              Sender        Empf     Proto    extID    (reverse due to endianess)
+    char extID[] = {NODE_CAN_ID , 0x40   , 0xC0 ,   0x00};
+
+    //Turn off all leds
+    CanTxMsg TxMessage;
+    TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
+    TxMessage.ExtId = *((uint32_t *)extID);
+    TxMessage.RTR = 0;
+    TxMessage.DLC = len;
+    if(TxMessage.DLC > 8)
+        TxMessage.DLC = 8;
+    int i;
+    for(i = 0 ; i <= TxMessage.DLC ; i++)
+    {
+        TxMessage.Data[i] = data[i];
+    }
+    CAN_Transmit(CAN1, &TxMessage);
+}
+
 
 void send_sync(char data)
 {
@@ -182,7 +203,24 @@ void prozess_can_it(void)
 
     if(RxMessage.IDE == CAN_Id_Standard)
     {
-        //iggen 
+        // TODO send msg when finished
+        uip_tcp_appstate_t  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
+        if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0) //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
+        {
+            int i;
+
+            send_tcp(s, "", 0);
+            append_to_cur_tcp(s, 0x16 );
+            append_to_cur_tcp(s, 0x00 );
+            append_to_cur_tcp(s, RxMessage.StdId >> 8 );
+            append_to_cur_tcp(s, RxMessage.StdId && 0xFF );
+            append_to_cur_tcp(s, RxMessage.DLC );
+            //data
+            for(i=0 ; i < RxMessage.DLC ; i++)
+            {
+                append_to_cur_tcp(s, RxMessage.Data[i] );
+            }
+        }
     }
     else
     {

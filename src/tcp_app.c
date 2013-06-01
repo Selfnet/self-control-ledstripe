@@ -103,10 +103,6 @@ void handle_input(uip_tcp_appstate_t *s)
     {
         send_tcp(s, tmp, 2);
     }
-    else if(tmp[0] == 'A')
-    {
-        send_tcp(s, tmp , len);
-    }
     // can gateway nachricht
     else if(tmp[0] == 0x15 && len >= 5 && len <= 14)
     {
@@ -146,6 +142,28 @@ void handle_input(uip_tcp_appstate_t *s)
         }
 
         LED_Toggle(1);
+    }
+    else if(tmp[0] == 0x16 && len >= 5 && len <= 14)
+    {
+        //              StdId    StdId     (reverse due to endianess)
+        char stdID[] = {tmp[2] , tmp[1]}; //tmp[3] = tmp[4] = 0
+
+        CanTxMsg TxMessage;
+        TxMessage.IDE = CAN_ID_STD;                                 //immer extended can frames
+        TxMessage.StdId = *((uint16_t *)stdID);
+        TxMessage.RTR = 0;
+        TxMessage.DLC = tmp[5]; //0 bis 8
+        if(TxMessage.DLC > 8)
+            TxMessage.DLC = 8;
+        int i;
+        for(i = 0 ; i <= TxMessage.DLC ; i++)
+        {
+            TxMessage.Data[i] = tmp[i+6];
+        }
+        CAN_Transmit(CAN1, &TxMessage);
+
+        LED_Toggle(1);
+        LED_Toggle(2);
     }
 /*
     else if(tmp[0] == 202) //light
@@ -204,7 +222,7 @@ void tcp_test_appcall(void)
         if(uip_poll())
         {
             ++s->timer;
-            if(s->timer >= 200)
+            if(s->timer >= 20000)
                 uip_abort(); //Timeout
         }
         else

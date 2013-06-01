@@ -25,8 +25,6 @@
 extern void USB_OTGFS1_GlobalHandler(void);
 
 #include "io-helper.h"
-#include "uip.h"
-#include "led_pwm.h"
 #include "tcp_app.h"
 #include "can.h"
 
@@ -192,13 +190,35 @@ void SysTick_Handler(void)
 
 
 /*******************************************************************************
+* Function Name  : TIM1_UP_IRQHandler
+* Description    : This function handles TIM2 global interrupt request.
+* Input          : None
+* Output         : None
+
+* Return         : None
+*******************************************************************************/
+int i = 0;
+
+void TIM3_IRQHandler(void) //fuer timer (vom ethernet)
+{
+//    TIM_ClearITPendingBit(TIM1, TIM_IT_Update );
+    if( ++i >= 72*2 ) //wenn einmal alle bitts durchgeschoben sind pwm pause
+        TIM4->CCR1 = 0;
+    if( i > 72*3 )
+        i = 0;
+    LED_Toggle(1);
+}
+
+
+
+/*******************************************************************************
 * Function Name  : TIM2_IRQHandler
 * Description    : This function handles TIM2 global interrupt request.
 * Input          : None
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void TIM2_IRQHandler(void) //fuer ethernet
+void TIM2_IRQHandler(void) //fuer timer (vom ethernet)
 {
 extern  void Tim2Handler (void);
     Tim2Handler();
@@ -215,48 +235,10 @@ extern  void Tim2Handler (void);
 *******************************************************************************/
 #include <stdlib.h>
 
-void TIM6_IRQHandler(void) 
-{
-    TIM_ClearITPendingBit(TIM6, TIM_IT_Update );
-    if(led.mode == 2) //random target rgb
-    {
-        led.target_r = rand()%2*255;
-        led.target_g = rand()%2*255;
-        led.target_b = rand()%2*255;
-        led.time = led.std_time;
-        start_fade(&led);
-        led.mode = 3; //random - fading
-    }
-    else if(led.mode == 5) //random change
-    {
-        fade_rnd_RGB(&led);
-    }
-    else if(led.mode == 4) //stress
-    {
-        led.r = rand()%255;
-        led.g = rand()%255;
-        led.b = rand()%255;
-        set_RGB(&led);
-    }
-    else if(led.mode == 9) //debug
-        _update_PWM( &led );//set_RGB(&led);
-    else
-    {
-        if(led.time > 0)
-        {
-            fade_RGB(&led);
-            if(led.time == 0 && led.mode == 0)
-            {
-                // TODO send msg when finished
-                struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
-                //strcpy(s->outputbuf , "fading finished");
-                send_ascii("fading finished", strlen("fading finished") );
-            }
-        }
-        else if(led.mode == 3)
-            led.mode = 2;
-    }
-}
+//void TIM6_IRQHandler(void)
+//{
+//    TIM_ClearITPendingBit(TIM6, TIM_IT_Update );
+//}
 
 
 /******************************************************************************/
@@ -272,8 +254,10 @@ void EXTI0_IRQHandler(void) //Button2
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
         // alle orangen leds on
+        #ifndef TEST_GATEWAY
         send_sync(1);
         LED_On(2);
+        #endif
     }
     
     //we need to clear line pending bit manually
@@ -288,20 +272,8 @@ void EXTI15_10_IRQHandler(void) //Button1
     //Check if EXTI_Line0 is asserted
     //if(EXTI_GetITStatus(EXTI_Line15) != RESET)
     {
-        //LED_On(1);
-        //GPIOB->BSRR = GPIO_Pin_7;
-        led.mode = 9;
-        led.cur_b += 100;
-        led.cur_r = 0;
-        led.cur_g = 0;
-        if(led.cur_r >= 0 && led.cur_r <= 2047 && led.cur_g >= 0 && led.cur_g <= 2047 && led.cur_b >= 0 && led.cur_b <= 2047)
-            ;//_update_PWM( &led );
-        else
-        {
-            LED_Toggle(2);
-            led.cur_b = 2048;
-        }
-        _update_PWM( &led );
+        char data[8] = {0xf,0x2,0x0,0x0,0x0,0x0,0x0};
+        send_led_msg( data , 7);
     }
     //we need to clear line pending bit manually
     //EXTI_ClearITPendingBit(EXTI_Line15);

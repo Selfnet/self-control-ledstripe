@@ -6,7 +6,10 @@
 void CAN_config(void);
 void prozess_can_it(void);
 void send_sync(char data);
+void send_led_msg(char *data, uint8_t len);
 
+
+uint32_t led_count;
 
 #define getSender(ExtId)    ( ( (ExtId)     & 0xff ) )
 #define getRecipient(ExtId) ( ( (ExtId>>8 ) & 0xff ) )
