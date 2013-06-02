@@ -190,28 +190,6 @@ void SysTick_Handler(void)
 
 
 /*******************************************************************************
-* Function Name  : TIM1_UP_IRQHandler
-* Description    : This function handles TIM2 global interrupt request.
-* Input          : None
-* Output         : None
-
-* Return         : None
-*******************************************************************************/
-int i = 0;
-
-void TIM3_IRQHandler(void) //fuer timer (vom ethernet)
-{
-//    TIM_ClearITPendingBit(TIM1, TIM_IT_Update );
-    if( ++i >= 72*2 ) //wenn einmal alle bitts durchgeschoben sind pwm pause
-        TIM4->CCR1 = 0;
-    if( i > 72*3 )
-        i = 0;
-    LED_Toggle(1);
-}
-
-
-
-/*******************************************************************************
 * Function Name  : TIM2_IRQHandler
 * Description    : This function handles TIM2 global interrupt request.
 * Input          : None

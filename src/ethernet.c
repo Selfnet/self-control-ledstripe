@@ -12,7 +12,7 @@
 
 #define BUF ((struct uip_eth_hdr *)&uip_buf[0])
 
-#include "led_pwm.h"
+#include "rgb_led.h"
 #include "can.h"
 
 #define TRUE 1
@@ -141,6 +141,8 @@ EnetDmaDesc_t EnetDmaRx;
 EnetDmaDesc_t EnetDmaTx;
 
 
+
+
 uint32_t uIPMain(void)
 {
     uint32_t i;
@@ -156,7 +158,8 @@ uint32_t uIPMain(void)
 //    timer_set(&periodic_timer, CLOCK_SECOND / 2);
     timer_set(&periodic_timer, CLOCK_SECOND / 50);
     timer_set(&arp_timer, CLOCK_SECOND * 10);
-    timer_set(&sec_timer, CLOCK_SECOND / 8); //1x pro sec wird gesynced
+//    timer_set(&sec_timer, CLOCK_SECOND / 8); //1x pro sec wird gesynced
+    timer_set(&sec_timer, CLOCK_SECOND / 100); //1x pro sec wird gesynced
 
 
     // Initialize the ethernet device driver
@@ -192,6 +195,8 @@ uint32_t uIPMain(void)
     int can_last_msg_id = 0;
     uint32_t nCount;
 
+    uint32_t ledPos = 2;
+
     while(1)
     {
         if(timer_expired(&sec_timer))
@@ -203,6 +208,26 @@ uint32_t uIPMain(void)
             send_sync(3);
             LED_Toggle(2);
             #endif
+
+
+            if(ledPos >= NUMBER_OF_LEDS*2)
+                ledPos = 2;
+            else if(ledPos >= NUMBER_OF_LEDS)
+            {
+                ++ledPos;
+                int ledPosBack = NUMBER_OF_LEDS-(ledPos-NUMBER_OF_LEDS);
+                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPosBack  , 0,0,0);
+                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPosBack-1, 64,0,0);
+                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPosBack-2,  255,0,0);
+            }
+            else
+            {
+                ++ledPos;
+                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPos  , 255,0,0);
+                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPos-1, 64,0,0);
+                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPos-2,  0,0,0);
+            }
+
         }
 
         uip_len = tapdev_read(uip_buf);
