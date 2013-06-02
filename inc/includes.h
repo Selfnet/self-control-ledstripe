@@ -24,10 +24,6 @@
 
 #include "stm32f10x_conf.h"
 #include "stm32f10x.h"
-//#include "stm32_eval.h"
-//#include "arm_comm.h"
 
-#include "stm32_eth.h"
-#include "ethernet.h"
 
 #endif  // __INCLUDES_H

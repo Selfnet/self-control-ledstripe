@@ -1,7 +1,7 @@
 include ../Makefile.common
 LIBS+=libstm32.a
-LIBS+=libstm32-eth.a
-LIBS+=libusbfs.a
+#LIBS+=libstm32-eth.a
+#LIBS+=libusbfs.a
 CFLAGS+=-c
 
 all: libs

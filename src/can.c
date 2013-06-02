@@ -1,9 +1,7 @@
 
 #include "stm32f10x.h"
 #include "can.h"
-#include "uip.h"
 #include "io-helper.h"
-#include "tcp_app.h"
 
 /**
   * @brief  Configures the CAN.
@@ -203,24 +201,7 @@ void prozess_can_it(void)
 
     if(RxMessage.IDE == CAN_Id_Standard)
     {
-        // TODO send msg when finished
-        uip_tcp_appstate_t  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
-        if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0) //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
-        {
-            int i;
-
-            send_tcp(s, "", 0);
-            append_to_cur_tcp(s, 0x16 );
-            append_to_cur_tcp(s, 0x00 );
-            append_to_cur_tcp(s, RxMessage.StdId >> 8 );
-            append_to_cur_tcp(s, RxMessage.StdId && 0xFF );
-            append_to_cur_tcp(s, RxMessage.DLC );
-            //data
-            for(i=0 ; i < RxMessage.DLC ; i++)
-            {
-                append_to_cur_tcp(s, RxMessage.Data[i] );
-            }
-        }
+        //nothing to do here
     }
     else
     {
@@ -240,42 +221,6 @@ void prozess_can_it(void)
                     LED_On(2);
                 else
                     LED_Toggle(2);
-            }
-            else
-            {
-                if(uip_conn != 0) // wenn tcp vorhanden antwort raushauen
-                {
-                    // TODO send msg when finished
-                    uip_tcp_appstate_t  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
-                    if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0) //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
-                    {
-                        int i;
-
-                        //CanMsg per Ethernet verschicken
-                        send_tcp(s, "", 0);
-                        append_to_cur_tcp(s, 0x15 );
-                        append_to_cur_tcp(s, 0x00 );
-                        append_to_cur_tcp(s, getTyp(RxMessage.ExtId) );
-                        append_to_cur_tcp(s, getRecipient(RxMessage.ExtId) );
-                        append_to_cur_tcp(s, getSender(RxMessage.ExtId) );
-                        append_to_cur_tcp(s, RxMessage.DLC );
-                        //data
-                        
-                        for(i=0 ; i < RxMessage.DLC ; i++)
-                        {
-                            append_to_cur_tcp(s, RxMessage.Data[i] );
-                        }
-                        
-                        //append the time between send and receive
-                        if( getTyp(RxMessage.ExtId) == CAN_PROTO_PONG )
-                        {
-                            append_to_cur_tcp(s, ((SysTick->VAL - last_ping_send)>>8) & 0xFF );
-                            append_to_cur_tcp(s, (SysTick->VAL - last_ping_send) & 0xFF );
-                        }
-                        
-                        //append_to_cur_tcp(s, RxMessage.Data[ RxMessage.DLC-1 ] );
-                    }
-                }
             }
         }
     }

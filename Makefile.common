@@ -24,16 +24,17 @@ FLASHLOC = 0x08000000
 
 # project specific
 INCLUDE=-I$(TOP)/inc
-INCLUDE+=-I$(TOP)/inc/usb
-INCLUDE+=-I$(TOP)/inc/eth
+#INCLUDE+=-I$(TOP)/inc/usb
+#INCLUDE+=-I$(TOP)/inc/eth
 
 # includes for stmlib 3.5.0 w/o USB
 INCLUDE+=-I$(STMLIB)/CMSIS/CM3/CoreSupport
 INCLUDE+=-I$(STMLIB)/CMSIS/CM3/DeviceSupport/ST/STM32F10x
 INCLUDE+=-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc
-INCLUDE+=-I$(STMLIB)/STM32_USB_OTG_Driver/inc
-INCLUDE+=-I$(STMLIB)/STM32_USB_Device_Library/Core/inc
-INCLUDE+=-I$(STMLIB)/STM32_USB_Device_Library/Class/cdc/inc
+
+#INCLUDE+=-I$(STMLIB)/STM32_USB_OTG_Driver/inc
+#INCLUDE+=-I$(STMLIB)/STM32_USB_Device_Library/Core/inc
+#INCLUDE+=-I$(STMLIB)/STM32_USB_Device_Library/Class/cdc/inc
 
 
 #Compiler optimize settings:
@@ -54,6 +55,5 @@ CFLAGS+=$(COMMONFLAGS) -Wall $(INCLUDE)
 CFLAGS+=-D STM32F10X_CL -DUSE_STDPERIPH_DRIVER
 CFLAGS+=-D VECT_TAB_FLASH
 CFLAGS+=-std=c99
-CFLAGS+=-D USE_USB_OTG_FS
 ## CFLAGS+=-D TEST_GATEWAY
 

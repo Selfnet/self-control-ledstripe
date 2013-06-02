@@ -22,10 +22,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
-extern void USB_OTGFS1_GlobalHandler(void);
 
 #include "io-helper.h"
-#include "tcp_app.h"
 #include "can.h"
 
 
@@ -162,45 +160,13 @@ void SysTick_Handler(void)
 /******************************************************************************/
 /******************************************************************************/
 
-/**
-  * @brief  This function handles EXTI15_10_IRQ Handler.
-  * @param  None
-  * @retval None
-  */
-/*void OTG_FS_WKUP_IRQHandler(void) //fuer usb
+#include "clock.h"
+void TIM1_UP_IRQHandler(void)
 {
-    if(USB_OTG_dev.cfg.low_power)
-    {
-        *(uint32_t *)(0xE000ED10) &= 0xFFFFFFF9 ; 
-        SystemInit();
-        USB_OTG_UngateClock(&USB_OTG_dev);
-    }
-    EXTI_ClearITPendingBit(EXTI_Line18);
-}*/
-
-/**
-  * @brief  This function handles OTG_HS Handler.
-  * @param  None
-  * @retval None
-  */
-/*void OTG_FS_IRQHandler(void) //fuer usb
-{
-    USBD_OTG_ISR_Handler (&USB_OTG_dev);
-}*/
-
-
-/*******************************************************************************
-* Function Name  : TIM2_IRQHandler
-* Description    : This function handles TIM2 global interrupt request.
-* Input          : None
-* Output         : None
-* Return         : None
-*******************************************************************************/
-void TIM2_IRQHandler(void) //fuer timer (vom ethernet)
-{
-extern  void Tim2Handler (void);
-    Tim2Handler();
+    TIM_ClearITPendingBit(TIM1, TIM_IT_Update );
+    clock_tick();
 }
+
 
 
 /*******************************************************************************
@@ -221,6 +187,8 @@ extern  void Tim2Handler (void);
 
 /******************************************************************************/
 
+#include "rgb_led.h"
+
 /**
   * @brief  This function handles ExternalInterrupt 0 (Port[A-D] Pin0) Handler.
   * @param  None
@@ -231,11 +199,11 @@ void EXTI0_IRQHandler(void) //Button2
     //Check if EXTI_Line0 is asserted
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
-        // alle orangen leds on
-        #ifndef TEST_GATEWAY
-        send_sync(1);
-        LED_On(2);
-        #endif
+        ledstripe.data[0] = rand()%255;
+        ledstripe.data[1] = rand()%255;
+        ledstripe.data[2] = rand()%255;
+//        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , 0 , ledstripe.data[0],ledstripe.data[1],ledstripe.data[2]);
+//        set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , rand() % 255,rand() % 255,rand() % 255);
     }
     
     //we need to clear line pending bit manually
@@ -247,203 +215,15 @@ void EXTI15_10_IRQHandler(void) //Button1
     if (EXTI->PR & (1<<13)) {                       // EXTI0 interrupt pending?
         EXTI->PR |= (1<<13);                          // clear pending interrupt
     }
+    //ledstripe.mode++;
     //Check if EXTI_Line0 is asserted
-    //if(EXTI_GetITStatus(EXTI_Line15) != RESET)
+    //if(EXTI_GetITStatus(EXTI_Line13) != RESET)
     {
-        char data[8] = {0xf,0x2,0x0,0x0,0x0,0x0,0x0};
-        send_led_msg( data , 7);
+//        set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , 0,0,64);
     }
     //we need to clear line pending bit manually
-    //EXTI_ClearITPendingBit(EXTI_Line15);
+    //EXTI_ClearITPendingBit(EXTI_Line13);
 }
-
-// TODO
-// *** ETH Interrupt ***
-void ETH_IRQHandler(void)
-{
-    #if defined (_DEBUG) && DEBUG_DMA_INT
-    debug_printf("DMA Int:");
-    #endif
-
-    // Normal interrupt summary
-    if ((ETH->DMASR & ETH_DMASR_NIS) == ETH_DMASR_NIS)
-    {
-        //#if INT_ENABLE_RI
-        if ((ETH->DMASR & ETH_DMASR_RS) == ETH_DMASR_RS)
-        {
-            // Ethernet frame received
-            LED_Toggle(1);
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_RS;
-
-            // Process receive interrupt
-            /*if (receiveIntHandler)
-            {
-                receiveIntHandler();
-            }*/
-        }
-        //#endif
-        #if INT_ENABLE_TI
-        if ((ETH->DMASR & ETH_DMASR_TS) == ETH_DMASR_TS)
-        {
-            // Ethernet frame sent
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" TS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_TS;
-        }
-        #endif
-        #if INT_ENABLE_TBUI
-        if ((ETH->DMASR & ETH_DMASR_TBUS) == ETH_DMASR_TBUS)
-        {
-            // Transmit buffer unavailable
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" TBUS");
-            #endif
-
-            // Clear interrupt flag, transmition is resumed after descriptors have been prepared
-            ETH->DMASR = ETH_DMASR_TBUS;
-        }
-        #endif
-        #if INT_ENABLE_ERI
-        if ((ETH->DMASR & ETH_DMASR_ERS) == ETH_DMASR_ERS)
-        {
-            // Early receive
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" ERS");
-            #endif
-
-            // Clear interrupt flag. Also cleared automatically by RI
-            ETH->DMASR = ETH_DMASR_ERS;
-        }
-        #endif
-
-        // Clear normal interrupt flag
-        ETH->DMASR = ETH_DMASR_NIS;
-    }
-
-    // Abnormal interrupt summary
-    if ((ETH->DMASR & ETH_DMASR_AIS) == ETH_DMASR_AIS)
-    {
-        LED_Toggle(2);
-    
-        #if INT_ENABLE_FBEI
-        if ((ETH->DMASR & ETH_DMASR_FBES) == ETH_DMASR_FBES)
-        {
-            // Fatal bus error
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" FBES");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_FBES;
-        }
-        #endif
-        #if INT_ENABLE_TPSI
-        if ((ETH->DMASR & ETH_DMASR_TPSS) == ETH_DMASR_TPSS)
-        {
-            // Transmit process stopped
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" TPSS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_TPSS;
-        }
-        #endif
-        #if INT_ENABLE_TJTI
-        if ((ETH->DMASR & ETH_DMASR_TJTS) == ETH_DMASR_TJTS)
-        {
-            // Transmit jabber timeout
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" TJTS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_TJTS;
-        }
-        #endif
-        #if INT_ENABLE_ROI
-        if ((ETH->DMASR & ETH_DMASR_ROS) == ETH_DMASR_ROS)
-        {
-            // Receive overflow
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" ROS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_ROS;
-        }
-        #endif
-        #if INT_ENABLE_TUI
-        if ((ETH->DMASR & ETH_DMASR_TUS) == ETH_DMASR_TUS)
-        {
-            // Transmit underflow
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" TUS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_TUS;
-        }
-        #endif
-        #if INT_ENABLE_RBUI
-        if ((ETH->DMASR & ETH_DMASR_RBUS) == ETH_DMASR_RBUS)
-        {
-            // Receive buffer unavailable
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" RBUS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_RBUS;
-        }
-        #endif
-        #if INT_ENABLE_RPSI
-        if ((ETH->DMASR & ETH_DMASR_RPSS) == ETH_DMASR_RPSS)
-        {
-            // Receive process stopped
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" RPSS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_RPSS;
-        }
-        #endif
-        #if INT_ENABLE_RWTI
-        if ((ETH->DMASR & ETH_DMASR_RWTS) == ETH_DMASR_RWTS)
-        {
-            // Receive watchdog timeout
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" RWTS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_RWTS;
-        }
-        #endif
-        #if INT_ENABLE_ETI
-        if ((ETH->DMASR & ETH_DMASR_ETS) == ETH_DMASR_ETS)
-        {
-            // Early transmit interrupt
-            #if defined (_DEBUG) && DEBUG_DMA_INT
-            debug_printf(" ETS");
-            #endif
-
-            // Clear interrupt flag
-            ETH->DMASR = ETH_DMASR_ETS;
-        }
-        #endif
-
-        // Clear abnormal interrupt flag
-        ETH->DMASR = ETH_DMASR_AIS;
-    }
-}
-
 
 
 // *** CAN Interrupt ***
