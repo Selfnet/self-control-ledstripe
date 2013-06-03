@@ -36,6 +36,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "game_dotcatching.h"
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
@@ -72,77 +74,6 @@ void SysTickStop(void)
 {
     SysTick->CTRL = 0;
 }
-
-
-/*__IO uint16_t ADCConvertedValue;*/
-/*#define ADC1_DR_Address    ((uint32_t)0x4001244C)*/
-
-/*void adc(void)*/
-/*{*/
-/*    ADC_InitTypeDef ADC_InitStructure;*/
-/*    DMA_InitTypeDef DMA_InitStructure;*/
-
-/*  GPIO_InitTypeDef GPIO_InitStructure;*/
-
-/*  /* Configure PC.04 (ADC Channel14) as analog input -------------------------*/
-/*  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;*/
-/*  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;*/
-/*  GPIO_Init(GPIOC, &GPIO_InitStructure);*/
-
-/*  /* Enable peripheral clocks ------------------------------------------------*/
-/*  /* Enable DMA1 clock */
-/*  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);*/
-
-
-/*  /* Enable ADC1 and GPIOC clock */
-/*  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOC, ENABLE);*/
-
-/*  /* DMA1 channel1 configuration ----------------------------------------------*/
-/*  DMA_DeInit(DMA1_Channel1);*/
-/*  DMA_InitStructure.DMA_PeripheralBaseAddr = ADC1_DR_Address;*/
-/*  DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)&ADCConvertedValue;*/
-/*  DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;*/
-/*  DMA_InitStructure.DMA_BufferSize = 1;*/
-/*  DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;*/
-/*  DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Disable;*/
-/*  DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;*/
-/*  DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;*/
-/*  DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;*/
-/*  DMA_InitStructure.DMA_Priority = DMA_Priority_High;*/
-/*  DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;*/
-/*  DMA_Init(DMA1_Channel1, &DMA_InitStructure);*/
-
-/*  /* ADC1 configuration ------------------------------------------------------*/
-/*  ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;*/
-/*  ADC_InitStructure.ADC_ScanConvMode = ENABLE;*/
-/*  ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;*/
-/*  ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;*/
-/*  ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;*/
-/*  ADC_InitStructure.ADC_NbrOfChannel = 1;*/
-/*  ADC_Init(ADC1, &ADC_InitStructure);*/
-
-/*  /* ADC1 regular channel14 configuration */ 
-/*  ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 1, ADC_SampleTime_55Cycles5);*/
-
-/*  /* Enable ADC1 DMA */
-/*  ADC_DMACmd(ADC1, ENABLE);*/
-/*  */
-/*  /* Enable ADC1 */
-/*  ADC_Cmd(ADC1, ENABLE);*/
-
-/*  /* Enable ADC1 reset calibration register */   
-/*  ADC_ResetCalibration(ADC1);*/
-/*  /* Check the end of ADC1 reset calibration register */
-/*  while(ADC_GetResetCalibrationStatus(ADC1));*/
-
-/*  /* Start ADC1 calibration */
-/*  ADC_StartCalibration(ADC1);*/
-/*  /* Check the end of ADC1 calibration */
-/*  while(ADC_GetCalibrationStatus(ADC1));*/
-/*     */
-/*  // Start ADC1 Software Conversion */
-/*  ADC_SoftwareStartConvCmd(ADC1, ENABLE);*/
-/*}*/
 
 
 /**
@@ -200,22 +131,14 @@ int main(void)
     set_rgb_led(&ledstripe.data[0], 1  , 255,255,0);
     set_rgb_led(&ledstripe.data[0], 0  , 255,255,64);
 
-    ledstripe.mode = 0x5;
+    ledstripe.mode = 0x10;
     ledstripe.pos  = 0;
     
     ledstripe.data[0] = 0;
 //    srand(0x1);
 
 
-    int init_center = 160;
-    int center=init_center;
-    int game_mode = 0;
-    int loosing_score = 28;
-    int next_game_mode_change = rand()%10+40;
-    int pos1_min=init_center*2-NUMBER_OF_LEDS;
-    int pos2_min=1;
-    int pos1=pos1_min,pos2=pos2_min;
-
+    init_game(&game);
     while(1)
     {
         if(timer_expired(&sec_timer))
@@ -223,10 +146,10 @@ int main(void)
             timer_reset(&sec_timer);
             LED_Toggle(1);
 
-            if(--next_game_mode_change <= 0)
+            if(--game.next_mode_change <= 0)
             {
-                game_mode = (game_mode == 1)?2:1;
-                next_game_mode_change = rand()%25+3;
+                game.mode = (game.mode == 1)?2:1;
+                game.next_mode_change = rand()%25+3;
             }
         }
         if(timer_expired(&fast_timer))
@@ -241,15 +164,13 @@ int main(void)
             //cicle
             else if(ledstripe.mode == 0x5)
             {
-		int i;
+                int i;
                 uint8_t tmp[9];
                 if(Button_GetState(1))
                     memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
-                else {
-                    for (i=0;i<9;i++) {
-                        set_rgb_led(&tmp[i], 0, 0, 0, 0);
-                    }
-                }
+                else
+                    set_rgb_led(&tmp[0], 0, 0, 0, 0);
+
                 if(Button_GetState(2))
                     memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
                 for(i=0; i < BufferSize-17-9; i++) {
@@ -395,6 +316,8 @@ int main(void)
             }
             else if(ledstripe.mode == 0x10)
             {
+                game_round();
+                /*
                 if(game_mode == 0) //reset
                 {
                     for(int i = 0 ; i < NUMBER_OF_LEDS ; i++)
@@ -499,7 +422,7 @@ int main(void)
                 set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , center , 0,255,0);
 
                 set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , init_center-loosing_score , 20,20,0);
-                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , init_center+loosing_score , 20,20,0);
+                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , init_center+loosing_score , 20,20,0); */
             }
 
 /*
