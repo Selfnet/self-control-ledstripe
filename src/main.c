@@ -200,7 +200,7 @@ int main(void)
     set_rgb_led(&ledstripe.data[0], 1  , 255,255,0);
     set_rgb_led(&ledstripe.data[0], 0  , 255,255,64);
 
-    ledstripe.mode = 0x10;
+    ledstripe.mode = 0x5;
     ledstripe.pos  = 0;
     
     ledstripe.data[0] = 0;
@@ -211,7 +211,7 @@ int main(void)
     int center=init_center;
     int game_mode = 0;
     int loosing_score = 28;
-    int next_game_mode_change = 1;
+    int next_game_mode_change = rand()%10+40;
     int pos1_min=init_center*2-NUMBER_OF_LEDS;
     int pos2_min=1;
     int pos1=pos1_min,pos2=pos2_min;
@@ -226,7 +226,7 @@ int main(void)
             if(--next_game_mode_change <= 0)
             {
                 game_mode = (game_mode == 1)?2:1;
-                next_game_mode_change = rand()%10+20;
+                next_game_mode_change = rand()%25+3;
             }
         }
         if(timer_expired(&fast_timer))
@@ -241,11 +241,22 @@ int main(void)
             //cicle
             else if(ledstripe.mode == 0x5)
             {
+		int i;
                 uint8_t tmp[9];
                 if(Button_GetState(1))
                     memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
-                memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[9], (uint8_t*)&SPI_MASTER_Buffer_Tx[0], BufferSize-17);
-                //memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[0], (uint8_t*)&tmp[0], 9);
+                else {
+                    for (i=0;i<9;i++) {
+                        set_rgb_led(&tmp[i], 0, 0, 0, 0);
+                    }
+                }
+                if(Button_GetState(2))
+                    memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
+                for(i=0; i < BufferSize-17-9; i++) {
+                    memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[i+9], (uint8_t*)&SPI_MASTER_Buffer_Tx[i], 9);
+                } 
+                //memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[9], (uint8_t*)&SPI_MASTER_Buffer_Tx[0], BufferSize-17-9);
+                memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[1], (uint8_t*)&tmp[0], 9);
             }
             //random
             else if(ledstripe.mode == 0x6)
@@ -397,7 +408,7 @@ int main(void)
                     set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , pos1   , 255,0,0);
                     set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS-pos2   , 0,0,255);
                     game_mode = 1;
-                    next_game_mode_change = rand()%10+7;
+                    next_game_mode_change = rand()%10+15;
                     
                     if(pos1_min > init_center-loosing_score)
                     {

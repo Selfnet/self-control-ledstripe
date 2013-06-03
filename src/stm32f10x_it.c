@@ -199,11 +199,11 @@ void EXTI0_IRQHandler(void) //Button2
     //Check if EXTI_Line0 is asserted
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
-        ledstripe.data[0] = rand()%255;
+/*        ledstripe.data[0] = rand()%255;
         ledstripe.data[1] = rand()%255;
         ledstripe.data[2] = rand()%255;
-//        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , 0 , ledstripe.data[0],ledstripe.data[1],ledstripe.data[2]);
-//        set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , rand() % 255,rand() % 255,rand() % 255);
+        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , 0 , ledstripe.data[0],ledstripe.data[1],ledstripe.data[2]);
+        set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , rand() % 255,rand() % 255,rand() % 255);*/
     }
     
     //we need to clear line pending bit manually
