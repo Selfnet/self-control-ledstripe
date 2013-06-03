@@ -7,8 +7,7 @@ LIBDIR=$(TOP)/libs
 STMLIB=$(LIBDIR)/STM32F10x_StdPeriph_Lib_V3.5.0/Libraries
 STMUTIL=$(LIBDIR)/STM32F10x_StdPeriph_Lib_V3.5.0/Utilities
 
-TCPREFIX = $(TOP)/../gnu-gcc-arm/gnu-toolchain/bin/
-TC=$(TCPREFIX)arm-none-eabi-
+TC=arm-none-eabi-
 CC=$(TC)gcc
 LD=$(TC)ld
 OBJCOPY=$(TC)objcopy
