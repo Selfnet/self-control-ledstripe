@@ -11,6 +11,13 @@ OBJS+=clock.o
 OBJS+=timer.o
 OBJS+=game_dotcatching.o
 
+OBJS+=flash_f1.o
+
+#OBJS+=ps2.o
+#OBJS+=ps2_init.o
+#OBJS+=stm32f10x_misc.o
+
+
 OBJS+=rgb_led.o
 
 #OBJS+=led_pwm.o

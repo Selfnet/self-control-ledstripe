@@ -27,8 +27,8 @@ struct ledstripe_t
 } ledstripe;
 
 //#define NUMBER_OF_LEDS 42
-#define NUMBER_OF_LEDS (5*30*2)
-#define BufferSize       (NUMBER_OF_LEDS*9+17)
+#define NUMBER_OF_LEDS (5*30)
+#define BufferSize     (NUMBER_OF_LEDS*9+17)
 extern uint8_t SPI_MASTER_Buffer_Tx[BufferSize];
 
 

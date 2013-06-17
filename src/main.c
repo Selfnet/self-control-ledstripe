@@ -24,6 +24,8 @@
 #include "includes.h"
 #include "io-helper.h" //dirks button+led func
 
+#include "stm32f10x.h"
+
 
 
 //#include "led_pwm.h"
@@ -76,6 +78,9 @@ void SysTickStop(void)
 }
 
 
+    uint8_t ps2data[10];
+    uint8_t ps2data_ptr = 0;
+
 /**
 * @brief  Main program.
 * @param  None
@@ -85,10 +90,10 @@ int main(void)
 {
     SysTickStart(0xFFFF);
 
-    /* Button Init */
+    // Button Init
     button_init();
 
-    /* LED Init */
+    // LED Init
     LED_init();
     LED_On(1);
 
@@ -97,8 +102,10 @@ int main(void)
     //test_rgb_timer_init();
     //test_rgb_pwm_init();
     test_led_spi();
-    LED_On(2);
+    //LED_On(2);
     LED_On(1);
+
+    flash_function_1();
 
     // initialize CAN-Bus and enable CAN Interrupts
     CAN_config();
@@ -110,13 +117,13 @@ int main(void)
     timer_set(&sec_timer, 1000); //1x pro sec wird gesynced
 
     LED_Off(1);
-  /*  
+    
     set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , 64,0,0);
     set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 1  , 255,0,0);
     set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 2  , 255,64,0);
     set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 3  , 255,255,0);
     set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 4  , 255,255,64);
-*/
+
 //    set_rgb_led(&SPI_MASTER_Buffer_Tx[0], NUMBER_OF_LEDS  , 255,255,64);
 
 /*    set_rgb_led(&ledstripe.data[0], 0  , 0,0,64);*/
@@ -133,9 +140,10 @@ int main(void)
 
     ledstripe.mode = 0x10;
     ledstripe.pos  = 0;
-    
     ledstripe.data[0] = 0;
-//    srand(0x1);
+
+    LED_Off(1);
+    LED_Off(2);
 
 
     init_game(&game);
@@ -279,6 +287,32 @@ int main(void)
                 {
                     set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i , ledstripe.data[0]*i/ledstripe.pos,ledstripe.data[1]*i/ledstripe.pos,ledstripe.data[2]*i/ledstripe.pos );
                 }
+            }
+            //bouncing
+            else if(ledstripe.mode == 0x0A)
+            {
+                ledstripe.pos++;
+                if(ledstripe.pos >= NUMBER_OF_LEDS*2-1) {
+                    ledstripe.pos = 1;
+                }
+                //uint8_t tmp[9];
+                //set_rgb_led(&tmp[0], 0, 0, 0, 0);
+                //if(Button_GetState(1))
+                //    memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
+                if(ledstripe.pos < NUMBER_OF_LEDS) {
+                    for(int i = NUMBER_OF_LEDS-2; i >= 0; i--) {
+                        memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[(i+1)*9], (uint8_t*)&SPI_MASTER_Buffer_Tx[i*9], 9);
+                    }
+                    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , 0 , 0,0,0);
+                }
+                else {
+                    for(int i = 0; i < NUMBER_OF_LEDS-1; i++) {
+                        memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[i*9], (uint8_t*)&SPI_MASTER_Buffer_Tx[(i+1)*9], 9);
+                    }
+                    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS-1 , 0,0,0);
+                }
+                //memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[9], (uint8_t*)&SPI_MASTER_Buffer_Tx[0], BufferSize-17-9);
+                //memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[0], (uint8_t*)&tmp[0], 9);
             }
             else if(ledstripe.mode == 0x9)
             {

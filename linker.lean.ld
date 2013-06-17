@@ -5,7 +5,8 @@
 MEMORY
 {
     ram (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
-    rom (rx)  : ORIGIN = 0x08000000, LENGTH = 256K
+    rom (rx)  : ORIGIN = 0x08000000, LENGTH = 212K //256K
+    flash_f1 (rx) : ORIGIN = 0x08035000, LENGTH = 44K
 }
 
 SECTIONS

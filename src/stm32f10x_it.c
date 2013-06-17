@@ -152,8 +152,10 @@ void PendSV_Handler(void)
   * @param  None
   * @retval None
   */
+  
 void SysTick_Handler(void)
 {
+    //TimingDelay_Decrement();
 }
 
 
@@ -168,7 +170,127 @@ void TIM1_UP_IRQHandler(void)
 }
 
 
+/*
+// PS2
+#include "ps2.h"
+//volatile uint8_t PS2_InputData = 0;
+volatile uint8_t char_waiting;
+uint8_t started = 0;
+int bit_count = 0;
+uint8_t shift;
+uint8_t caps_lock;
+uint8_t extended;
+uint8_t release;
 
+
+
+void EXTI9_5_IRQHandler(void)
+{
+    //data
+    if(EXTI_GetITStatus(EXTI_Line9) != RESET)
+    {
+        LED_Toggle(2);
+        PS2_DataIRQHandler();
+        //we need to clear line pending bit manually
+        EXTI_ClearITPendingBit(EXTI_Line9);
+    }
+    
+    //clock
+    if(EXTI_GetITStatus(EXTI_Line9) != RESET)
+    {
+        EXTI_ClearITPendingBit(EXTI_Line9);
+       
+        BitAction PS2_DataBit = 0;
+        BitAction PS2_ClkBit = 0;
+        // Read input 
+        PS2_DataBit = GPIO_ReadInputDataBit(GPIOC, PS2_Pin_DATA);
+        PS2_ClkBit = GPIO_ReadInputDataBit(GPIOD, PS2_Pin_CLK);
+
+        if(PS2_ClkBit != 0)
+        {
+            LED_Toggle(1);
+            if(!started)
+            {
+                if( PS2_DataBit == 0 )
+                {
+                    started = 1;
+                    bit_count = 0;
+                    PS2_InputData = 0;
+                    return;
+                }
+            }
+            else if(bit_count < 8) //data
+            {
+                if( PS2_DataBit == 1 )
+                {
+                    PS2_InputData |= (1<<bit_count);
+                }
+                bit_count++;
+                return;
+            }
+            else if(bit_count == 8) //parity bit
+            {
+                bit_count++;
+                return;
+            }
+            else
+            {
+                started = 0;
+                bit_count = 0;
+            }
+        }
+
+        if(PS2_InputData == 0xF0) //release code
+        {
+            release = 1;
+            PS2_InputData = 0;
+            return;
+        }
+        else if (PS2_InputData == 0x12) //hanlde shift key
+        {
+            if(release == 0)
+            {
+                shift = 1;
+            }
+            else
+            {
+                shift = 0;
+                release = 0;
+            }
+            return;
+        }
+        else //not a special character
+        {
+            if(release) //we were in release mode - exit release mode
+            {
+                release = 0;
+            }
+            else //ignore that character
+            {
+                char_waiting = 1;
+            }
+        }
+    }
+}
+
+
+// PS2
+
+void TIM2_IRQHandler(void)
+{
+
+    if (TIM_GetITStatus(TIM2, TIM_IT_CC1) != RESET) {
+        / CC1 is the CLK Timer Channel 
+        TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
+        PS2_ClockIRQHandler();
+    } else if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET) {
+        // CC2 is the DATA Timer Channel 
+        TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
+
+        PS2_DataIRQHandler();
+    }
+}
+*/
 /*******************************************************************************
 * Function Name  : TIM3_IRQHandler
 * Description    : This function handles TIM2 global interrupt request.
@@ -199,11 +321,21 @@ void EXTI0_IRQHandler(void) //Button2
     //Check if EXTI_Line0 is asserted
     if(EXTI_GetITStatus(EXTI_Line0) != RESET)
     {
-/*        ledstripe.data[0] = rand()%255;
+        //uint32_t *addr = 0x20001000;
+        //FLASH_ProgramHalfWord( addr, ledstripe.pos);
+        LED_Toggle(2);
+
+        //reset ps2?
+        /*if(PS2_SendRequest == Bit_RESET) {
+            PS2_OutputData = 0x15; // Makecode Q
+            PS2_SendRequest = Bit_SET;
+        }*/
+
+        ledstripe.data[0] = rand()%255;
         ledstripe.data[1] = rand()%255;
         ledstripe.data[2] = rand()%255;
         set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , 0 , ledstripe.data[0],ledstripe.data[1],ledstripe.data[2]);
-        set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , rand() % 255,rand() % 255,rand() % 255);*/
+        set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , rand() % 255,rand() % 255,rand() % 255);
     }
     
     //we need to clear line pending bit manually

@@ -64,11 +64,11 @@ void init_clock(void)
 
     /* Compute the prescaler value 1x pro sek*/
 //    uint16_t PrescalerValue = (uint16_t) (8);
-    uint16_t PrescalerValue = (uint16_t) (16);
+    uint16_t PrescalerValue = (uint16_t) (64);
 
     /* Time base configuration */
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-    TIM_TimeBaseStructure.TIM_Period = 10;
+    TIM_TimeBaseStructure.TIM_Period = 100;
     TIM_TimeBaseStructure.TIM_Prescaler = PrescalerValue;
     TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;

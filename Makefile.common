@@ -46,8 +46,8 @@ INCLUDE+=-I$(STMLIB)/STM32F10x_StdPeriph_Driver/inc
 # default settings for debug version: COMMONFLAGS=-O0 -g -mcpu=cortex-m3 -mthumb
 # option -Werror treats all warnings as errors 
 #COMMONFLAGS=-O3 -g -mcpu=cortex-m3 -mthumb # https://github.com/texane/stlink/issues/65 << stdlib laesst sich nicht mit optimize flags compilen fix wird im link beschrieben
-COMMONFLAGS=-Os -g -mcpu=cortex-m3 -mthumb
-#COMMONFLAGS=-O0 -g -mcpu=cortex-m3 -mthumb
+#COMMONFLAGS=-Os -g -mcpu=cortex-m3 -mthumb
+COMMONFLAGS=-O0 -g -mcpu=cortex-m3 -mthumb
 CFLAGS+=$(COMMONFLAGS) -Wall $(INCLUDE)
 #Adust the following line to the type of MCU used and stdt lib components
 #Adust the following line to the type of MCU used and stdt lib components

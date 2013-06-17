@@ -2,8 +2,19 @@ target remote :3333
 monitor reset halt
 b stm32f10x_it.c:81
 b HardFault_Handler
-b  prozess_can_it
-b append_to_cur_tcp
+#b EXTI9_5_IRQHandler
+b stm32f10x_it.c:210
+display kbd_data
+display bit_count
+
+#display/x PS2_InputData 
+#display PS2_InputBitNr 
+#display/x PS2_OutputData 
+#display PS2_OutputBitNr 
+#display PS2_State
+
+#b  prozess_can_it
+#b append_to_cur_tcp
 #b tcp_app.c:191
 #b led_pwm.c:226
 #b can.c:113
