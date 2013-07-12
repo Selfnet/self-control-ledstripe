@@ -5,6 +5,40 @@
 
 uint8_t SPI_MASTER_Buffer_Tx[BufferSize];
 
+uint32_t get_rgb_led(uint8_t *mem_addr, uint16_t lednr, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    *r = 0;
+    *g = 0;
+    *b = 0;
+
+    uint32_t data_r = 0b100100100100100100100100;
+    uint32_t data_g = 0b100100100100100100100100;
+    uint32_t data_b = 0b100100100100100100100100;
+
+
+    *(( (uint8_t *)&data_b)+2) = *(mem_addr + lednr * 9+0);
+    *(( (uint8_t *)&data_b)+1) = *(mem_addr + lednr * 9+1);
+    *(( (uint8_t *)&data_b)+0) = *(mem_addr + lednr * 9+2);
+
+
+    *(( (uint8_t *)&data_r)+2) = *(mem_addr + lednr * 9+3);
+    *(( (uint8_t *)&data_r)+1) = *(mem_addr + lednr * 9+4);
+    *(( (uint8_t *)&data_r)+0) = *(mem_addr + lednr * 9+5);
+
+    *(( (uint8_t *)&data_g)+2) = *(mem_addr + lednr * 9+6);
+    *(( (uint8_t *)&data_g)+1) = *(mem_addr + lednr * 9+7);
+    *(( (uint8_t *)&data_g)+0) = *(mem_addr + lednr * 9+8);
+
+    for(int i = 0; i < 3 ; i++)
+    {
+        *r |= ( data_r >> (i*3+1-i) ) & (1<<i);
+        *g |= ( data_g >> (i*3+1-i) ) & (1<<i);
+        *b |= ( data_b >> (i*3+1-i) ) & (1<<i);
+    }
+
+    return 0;
+}
+
 uint32_t set_rgb_led(uint8_t *mem_addr, uint16_t lednr, uint8_t r, uint8_t g, uint8_t b)
 {
     uint32_t data_r = 0b100100100100100100100100;
@@ -20,7 +54,6 @@ uint32_t set_rgb_led(uint8_t *mem_addr, uint16_t lednr, uint8_t r, uint8_t g, ui
     *(mem_addr + lednr * 9+1) = *(( (uint8_t *)&data_b)+1);
     *(mem_addr + lednr * 9+2) = *(( (uint8_t *)&data_b)+0);
 
-
     *(mem_addr + lednr * 9+3) = *(( (uint8_t *)&data_r)+2);
     *(mem_addr + lednr * 9+4) = *(( (uint8_t *)&data_r)+1);
     *(mem_addr + lednr * 9+5) = *(( (uint8_t *)&data_r)+0);
@@ -29,6 +62,15 @@ uint32_t set_rgb_led(uint8_t *mem_addr, uint16_t lednr, uint8_t r, uint8_t g, ui
     *(mem_addr + lednr * 9+7) = *(( (uint8_t *)&data_g)+1);
     *(mem_addr + lednr * 9+8) = *(( (uint8_t *)&data_g)+0);
     return 0;
+}
+
+void set_rgb_led_color(uint8_t r, uint8_t g, uint8_t b)
+{
+    set_rgb_led(SPI_MASTER_Buffer_Tx, 0, r, g, b);
+    for(int i = 1 ; i < NUMBER_OF_LEDS ; i++)
+    {
+        memcpy(SPI_MASTER_Buffer_Tx + i*9, SPI_MASTER_Buffer_Tx, 9);
+    }
 }
 
 void fill_rgb_led_buffer(void)

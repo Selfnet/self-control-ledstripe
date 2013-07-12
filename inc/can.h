@@ -20,18 +20,17 @@ uint32_t led_count;
 #define setType(X)          ( ( (X<<16)     & 0xff0000 ) )
 
 //NODE_CAN_ID = 32 = 0x20 = 0b100000
-#ifdef TEST_GATEWAY
-    #define NODE_CAN_ID 0x21
-#else
-    #define NODE_CAN_ID 0x20
-#endif
+#define NODE_CAN_ID_LEDSTRIPE 0x44
+
 #define NODE_CAN_BROADCAST 0xFF
 
 #define CAN_PROTO_SYNC 0x0A
 #define CAN_PROTO_PING 0x08
 #define CAN_PROTO_PONG 0x09
 #define CAN_PROTO_LED  0xC0
-#define CAN_PROTO_TEXT 0xD0
+#define CAN_PROTO_LEDSTRIPE   0xCC
+#define CAN_PROTO_PWR_SWITCH  0xD0
+#define CAN_PROTO_TEXT 0xE0
 
 // ext id =  0b10 100  0*24
 #define CAN_EXT_ID 0x14000000

@@ -35,8 +35,4 @@ void game_round(void);
 void update_display(sGame *game);
 void display_player(sGame *game);
 
-sGame game;
-
-
-
 #endif

@@ -39,6 +39,7 @@
 #include <stdlib.h>
 
 #include "game_dotcatching.h"
+#include "led_functions.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -99,8 +100,6 @@ int main(void)
 
     LED_On(2);
     LED_Off(1);
-    //test_rgb_timer_init();
-    //test_rgb_pwm_init();
     test_led_spi();
     //LED_On(2);
     LED_On(1);
@@ -112,25 +111,11 @@ int main(void)
 
     init_clock();
 
-    struct timer sec_timer,fast_timer;
-    timer_set(&fast_timer, 100); //1x pro sec wird gesynced
-    timer_set(&sec_timer, 1000); //1x pro sec wird gesynced
+    struct timer sec_timer;
+    timer_set(&ledstripe.led_timer, 100); //1x pro sec wird gesynced
+    timer_set(&sec_timer, 10000); //1x pro sec wird gesynced
 
     LED_Off(1);
-    
-    set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 0  , 64,0,0);
-    set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 1  , 255,0,0);
-    set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 2  , 255,64,0);
-    set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 3  , 255,255,0);
-    set_rgb_led(&SPI_MASTER_Buffer_Tx[0], 4  , 255,255,64);
-
-//    set_rgb_led(&SPI_MASTER_Buffer_Tx[0], NUMBER_OF_LEDS  , 255,255,64);
-
-/*    set_rgb_led(&ledstripe.data[0], 0  , 0,0,64);*/
-/*    set_rgb_led(&ledstripe.data[0], 1  , 0,0,64);*/
-/*    set_rgb_led(&ledstripe.data[0], 2  , 0,0,64);*/
-/*    set_rgb_led(&ledstripe.data[0], 3  , 0,0,64);*/
-/*    set_rgb_led(&ledstripe.data[0], 4  , 0,0,64);*/
 
     set_rgb_led(&ledstripe.data[0], 4  , 64,0,0);
     set_rgb_led(&ledstripe.data[0], 3  , 255,0,0);
@@ -138,132 +123,87 @@ int main(void)
     set_rgb_led(&ledstripe.data[0], 1  , 255,255,0);
     set_rgb_led(&ledstripe.data[0], 0  , 255,255,64);
 
-    ledstripe.mode = 0x10;
+    ledstripe.mode = 0x3;
     ledstripe.pos  = 0;
     ledstripe.data[0] = 0;
 
     LED_Off(1);
     LED_Off(2);
 
-
     init_game(&game);
+
     while(1)
     {
         if(timer_expired(&sec_timer))
         {
             timer_reset(&sec_timer);
-            LED_Toggle(1);
+            /*LED_Toggle(1);
 
             if(--game.next_mode_change <= 0)
             {
                 game.mode = (game.mode == 1)?2:1;
                 game.next_mode_change = rand()%25+3;
-            }
+            }*/
         }
-        if(timer_expired(&fast_timer))
+        if(timer_expired(&ledstripe.led_timer))
         {
-            timer_reset(&fast_timer);
+            timer_reset(&ledstripe.led_timer);
 
-            if(ledstripe.mode == 0x4)
+            //black
+            if(ledstripe.mode == 0x1)
             {
-                ++ledstripe.pos;
-                memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[(ledstripe.pos+1)*9], (uint8_t*)&SPI_MASTER_Buffer_Tx[ledstripe.pos*9], 9*5);
+                fill_rgb_led_buffer();
             }
-            //cicle
+            //set color
+            else if(ledstripe.mode == 0x2)
+            {
+                //++ledstripe.pos;
+                for(int pos = ledstripe.pos ; pos <= ledstripe.data[3] || pos == ledstripe.pos ; pos++)
+                    set_rgb_led(SPI_MASTER_Buffer_Tx, pos, ledstripe.data[0], ledstripe.data[1], ledstripe.data[2]);
+            }
+            else if(ledstripe.mode == 0x3)
+            {
+                function_3();
+            }
+            //set all color
             else if(ledstripe.mode == 0x5)
             {
-                int i;
-                uint8_t tmp[9];
-                if(Button_GetState(1))
-                    memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
-                else
-                    set_rgb_led(&tmp[0], 0, 0, 0, 0);
-
-                if(Button_GetState(2))
-                    memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
-                for(i=0; i < BufferSize-17-9; i++) {
-                    memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[i+9], (uint8_t*)&SPI_MASTER_Buffer_Tx[i], 9);
-                } 
-                //memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[9], (uint8_t*)&SPI_MASTER_Buffer_Tx[0], BufferSize-17-9);
-                memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[1], (uint8_t*)&tmp[0], 9);
+                set_rgb_led_color(ledstripe.data[0], ledstripe.data[1], ledstripe.data[2]);
             }
-            //random
+            //move up
+            else if(ledstripe.mode == 0x41)
+            {
+                function_move_up();
+            }
+            //move down
+            else if(ledstripe.mode == 0x42)
+            {
+                function_move_down();
+            }
+            //circle around
+            else if(ledstripe.mode == 0x4)
+            {
+                function_circle();
+            }
+            //random pixel blitzen
             else if(ledstripe.mode == 0x6)
             {
                 set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledstripe.pos , 0,0,0);
                 ledstripe.pos = (rand())%NUMBER_OF_LEDS;
                 set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , ledstripe.pos , ledstripe.data[0],ledstripe.data[1],ledstripe.data[2]);
-//                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledstripe.pos , 255,255,255);
             }
-            //moving dot
-            else if(ledstripe.mode == 0x7) //TODO
+            //renngame
+            else if(ledstripe.mode == 0x7)
             {
-                if(ledstripe.pos > NUMBER_OF_LEDS*2+8)
-                {
-                    ledstripe.pos = 0;
-                }
-                else if(ledstripe.pos > NUMBER_OF_LEDS+4)
-                {
-                    //set last led
-                    if(ledstripe.pos-5 <= NUMBER_OF_LEDS+4)
-                        memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17], (uint8_t*)&ledstripe.data[ (ledstripe.pos-1-NUMBER_OF_LEDS-4)*9 ], 9);
-                    //save first led
-                    else if(ledstripe.pos+1 > NUMBER_OF_LEDS*2)
-                    // 42*2+8
-                    // 92 = 4
-                    // 91 = 3
-                    // 90 = 2 | 89 = 1 | 88 = 0 
-                        memcpy((uint8_t*)&ledstripe.data[ (ledstripe.pos-NUMBER_OF_LEDS*2-4)*9 ], (uint8_t*)&SPI_MASTER_Buffer_Tx[0], 9);
-
-                    memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[9], NUMBER_OF_LEDS*9);//BufferSize-17);
-
-                    if(ledstripe.pos+6 < NUMBER_OF_LEDS*2)
-                        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS, 0,0,0);
-                    //memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9*5], (uint8_t*)&tmp[0], 9*5);
-                }
-                else if(ledstripe.pos <= NUMBER_OF_LEDS+9)
-                {
-/*/                    uint8_t tmp[9*5];
-//      41,42, 43,44,45,46 | 41 -> 0 , 42 -> 1
-                    //save last led
-                    if(ledstripe.pos+2 > NUMBER_OF_LEDS)
-                    {
-                        LED_Toggle(2);
-                        if( ((ledstripe.pos-NUMBER_OF_LEDS+1)) < 5 )
-                            memcpy((uint8_t*)&ledstripe.data[ ((ledstripe.pos-NUMBER_OF_LEDS+1))*9 ], (uint8_t*)&SPI_MASTER_Buffer_Tx[NUMBER_OF_LEDS*9-9], 9);
-                    }*/
-                    // set first led
-                    if(ledstripe.pos < 5)
-                    {
-                        memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[0], (uint8_t*)&ledstripe.data[ (ledstripe.pos)*9 ], 9);
-                        memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[9], (uint8_t*)&SPI_MASTER_Buffer_Tx[0], 9*5);
-                    }
-                    else
-                    {
-                        if(ledstripe.pos == 5)
-                            set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , ledstripe.pos-5 , 0,0,0);
-
-                        memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[(ledstripe.pos-3)*9], (uint8_t*)&SPI_MASTER_Buffer_Tx[(ledstripe.pos-4)*9], 9*5);
-                        //letzte led ausschalten
-                        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , ledstripe.pos-4 , 0,0,0);
-
-                    /*else
-                    {
-                        //ist teilweise auserhalb des bereichs
-                        memcpy((uint8_t*)&ledstripe.data[ ((ledstripe.pos-NUMBER_OF_LEDS+1))*9 ], (uint8_t*)&SPI_MASTER_Buffer_Tx[NUMBER_OF_LEDS*9-9], 9);
-                        memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[(ledstripe.pos+1)*9], (uint8_t*)&SPI_MASTER_Buffer_Tx[ledstripe.pos*9], 9*(ledstripe.pos-NUMBER_OF_LEDS+1));
-                    }*/
-
-                    }
-                }
-                ++ledstripe.pos;
+                //
             }
+            /* OLD STUFF
             else if(ledstripe.mode == 0x8)
             {
                 while(Button_GetState(1));
                 for(uint32_t i = 0 ; i < NUMBER_OF_LEDS ; i++)
                 {
-                    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i , 0,0,0);
+                    set_rgb_led(SPI_MASTER_Buffer_Tx , i , 0,0,0);
                 }
 
                 ledstripe.pos = 0;
@@ -277,52 +217,26 @@ int main(void)
                         ledstripe.data[0] = rand()%255;
                         ledstripe.data[1] = rand()%255;
                         ledstripe.data[2] = rand()%255;
-                        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , ledstripe.pos , ledstripe.data[0],ledstripe.data[1],ledstripe.data[2]);
-                        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , ledstripe.pos-1 , 0,0,0);
+                        set_rgb_led( SPI_MASTER_Buffer_Tx , ledstripe.pos , ledstripe.data[0],ledstripe.data[1],ledstripe.data[2]);
+                        set_rgb_led( SPI_MASTER_Buffer_Tx , ledstripe.pos-1 , 0,0,0);
                     }
                 }
-                
+
                 ledstripe.pos = t;
                 for(uint32_t i = 0 ; i < ledstripe.pos && i < NUMBER_OF_LEDS ; i++)
                 {
-                    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i , ledstripe.data[0]*i/ledstripe.pos,ledstripe.data[1]*i/ledstripe.pos,ledstripe.data[2]*i/ledstripe.pos );
+                    set_rgb_led(SPI_MASTER_Buffer_Tx, i , ledstripe.data[0]*i/ledstripe.pos,ledstripe.data[1]*i/ledstripe.pos,ledstripe.data[2]*i/ledstripe.pos );
                 }
-            }
-            //bouncing
-            else if(ledstripe.mode == 0x0A)
-            {
-                ledstripe.pos++;
-                if(ledstripe.pos >= NUMBER_OF_LEDS*2-1) {
-                    ledstripe.pos = 1;
-                }
-                //uint8_t tmp[9];
-                //set_rgb_led(&tmp[0], 0, 0, 0, 0);
-                //if(Button_GetState(1))
-                //    memcpy((uint8_t*)&tmp[0], (uint8_t*)&SPI_MASTER_Buffer_Tx[BufferSize-17-9], 9);
-                if(ledstripe.pos < NUMBER_OF_LEDS) {
-                    for(int i = NUMBER_OF_LEDS-2; i >= 0; i--) {
-                        memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[(i+1)*9], (uint8_t*)&SPI_MASTER_Buffer_Tx[i*9], 9);
-                    }
-                    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , 0 , 0,0,0);
-                }
-                else {
-                    for(int i = 0; i < NUMBER_OF_LEDS-1; i++) {
-                        memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[i*9], (uint8_t*)&SPI_MASTER_Buffer_Tx[(i+1)*9], 9);
-                    }
-                    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS-1 , 0,0,0);
-                }
-                //memmove((uint8_t*)&SPI_MASTER_Buffer_Tx[9], (uint8_t*)&SPI_MASTER_Buffer_Tx[0], BufferSize-17-9);
-                //memcpy((uint8_t*)&SPI_MASTER_Buffer_Tx[0], (uint8_t*)&tmp[0], 9);
             }
             else if(ledstripe.mode == 0x9)
             {
                 if(!Button_GetState(1))
                 {
                     //while(Button_GetState(1));
-                    /*for(uint32_t i = 0 ; i < NUMBER_OF_LEDS ; i++)
-                    {
-                        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i , 0,0,0);
-                    }*/
+                    //for(uint32_t i = 0 ; i < NUMBER_OF_LEDS ; i++)
+                    //{
+                    //    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i , 0,0,0);
+                    //}
 
                     float t = ledstripe.pos;
                     while(!Button_GetState(1))
@@ -335,7 +249,7 @@ int main(void)
                             set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , ledstripe.pos-1 , 0,0,0);
                         }
                     }
-                    timer_restart(&fast_timer);
+                    timer_restart(&ledstripe.led_timer);
                 }
                 else if(ledstripe.pos > 0)
                 {
@@ -347,7 +261,7 @@ int main(void)
                     else
                         --ledstripe.pos;
                 }
-            }
+            }*/
             else if(ledstripe.mode == 0x10)
             {
                 game_round();
@@ -366,7 +280,7 @@ int main(void)
                     set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS-pos2   , 0,0,255);
                     game_mode = 1;
                     next_game_mode_change = rand()%10+15;
-                    
+
                     if(pos1_min > init_center-loosing_score)
                     {
                         ledstripe.data[0] = 0;
@@ -383,7 +297,7 @@ int main(void)
                     }
 
                 }
-                
+
                 if(!Button_GetState(1))
                 {
                     if(pos1 < NUMBER_OF_LEDS && pos1 <= NUMBER_OF_LEDS-pos2)
@@ -442,7 +356,7 @@ int main(void)
                     pos2 = pos2_min;
                 }
 
-                
+
                 if(game_mode == 1)
                 {
                     set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , center-1 , 20,0,0);
@@ -457,26 +371,7 @@ int main(void)
 
                 set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , init_center-loosing_score , 20,20,0);
                 set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , init_center+loosing_score , 20,20,0); */
-            }
-
-/*
-            if(ledPos >= NUMBER_OF_LEDS*2-1)
-                ledPos = 1;
-            else if(ledPos >= NUMBER_OF_LEDS)
-            {
-                int ledPosBack = NUMBER_OF_LEDS-(ledPos-NUMBER_OF_LEDS);
-                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPosBack  , 0,0,0);
-                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPosBack-1, 64,0,0);
-                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPosBack-2,  255,0,0);
-            }
-            else
-            {
-                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPos  , 255,0,0);
-                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPos-1, 64,0,0);
-                set_rgb_led(&SPI_MASTER_Buffer_Tx[0], ledPos-2,  0,0,0);
-            }
-            }
-*/
+            } //game
         }
     }
 }

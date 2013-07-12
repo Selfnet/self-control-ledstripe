@@ -10,18 +10,18 @@
 
 #include "game_dotcatching.h"
 
+sGame game;
+
 void init_game(sGame *game)
 {
     game->mode = 1;
-    game->center = 160;
-    game->init_center = 160;
+    game->center = NUMBER_OF_LEDS/2;
+    game->init_center = NUMBER_OF_LEDS/2;
     game->loosing_distance = 28;
     game->score_increase = 4;
     game->next_mode_change = rand()%10+40;
 
-
-
-    game->player[0].min_pos = game->init_center*2 - NUMBER_OF_LEDS;
+    game->player[0].min_pos = 1;
     game->player[0].pos = game->player[0].min_pos;
     game->player[0].max_pos = NUMBER_OF_LEDS-1;
     game->player[0].score = 0;
@@ -54,18 +54,17 @@ void init_game(sGame *game)
     new_game_round(game);
 }
 
-
+//resetet das spiel -> neu runde
 void new_game_round(sGame *game)
 {
     //alles auf schwarz setzen
-    for(int i = 0 ; i < NUMBER_OF_LEDS ; i++)
-        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i   , 0,0,0);
+    fill_rgb_led_buffer();
 
     //min pos der spiler setzen
     for(int i = 0 ; i < game->player[1].min_pos ; i++)
-        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS-i  ,  game->player[1].score_color[0], game->player[1].score_color[1], game->player[1].score_color[2]);
+        set_rgb_led( SPI_MASTER_Buffer_Tx , NUMBER_OF_LEDS-i  ,  game->player[1].score_color[0], game->player[1].score_color[1], game->player[1].score_color[2]);
     for(int i = 0 ; i < game->player[0].min_pos ; i++)
-        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i                 ,  game->player[0].score_color[0], game->player[0].score_color[1], game->player[0].score_color[2]);
+        set_rgb_led( SPI_MASTER_Buffer_Tx , i                 ,  game->player[0].score_color[0], game->player[0].score_color[1], game->player[0].score_color[2]);
 
     //display player dots
     display_player(game);
@@ -81,7 +80,7 @@ void new_game_round(sGame *game)
         ledstripe.data[2] = game->player[1].dot_color[2];
         ledstripe.mode = 6;
     }
-    else if(NUMBER_OF_LEDS - game->player[1].min_pos < game->init_center + game->loosing_distance)
+    else if(game->player[1].min_pos > game->init_center - game->loosing_distance)
     {
         ledstripe.data[0] = game->player[0].dot_color[0];
         ledstripe.data[1] = game->player[0].dot_color[1];
@@ -99,9 +98,9 @@ void move_player(sGame *game, int pid, uint32_t button_state)
         {
             game->player[pid].pos += game->player[pid].speed_forward;
             if(pid == 0)
-                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->player[pid].pos - game->player[pid].speed_forward , 0,0,0);
+                set_rgb_led( SPI_MASTER_Buffer_Tx , game->player[pid].pos - game->player[pid].speed_forward , 0,0,0);
             else
-                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS - (game->player[pid].pos - game->player[pid].speed_forward) , 0,0,0);
+                set_rgb_led( SPI_MASTER_Buffer_Tx , NUMBER_OF_LEDS - (game->player[pid].pos - game->player[pid].speed_forward) , 0,0,0);
         }
     }
     else
@@ -110,21 +109,22 @@ void move_player(sGame *game, int pid, uint32_t button_state)
         {
             game->player[pid].pos -= game->player[pid].speed_backward;
             if(pid == 0)
-                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->player[pid].pos + game->player[pid].speed_backward , 0,0,0);
+                set_rgb_led( SPI_MASTER_Buffer_Tx , game->player[pid].pos + game->player[pid].speed_backward , 0,0,0);
             else
-                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS - (game->player[pid].pos + game->player[pid].speed_backward) , 0,0,0);
-
-
+                set_rgb_led( SPI_MASTER_Buffer_Tx , NUMBER_OF_LEDS - (game->player[pid].pos + game->player[pid].speed_backward) , 0,0,0);
         }
     }
 }
 
+//zeigt aktuelle punkte der spieler an
 void display_player(sGame *game)
 {
-    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->player[0].pos ,                 game->player[0].dot_color[0], game->player[0].dot_color[1], game->player[0].dot_color[2]);
-    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , NUMBER_OF_LEDS - game->player[1].pos, game->player[1].dot_color[0], game->player[1].dot_color[1], game->player[1].dot_color[2]);
+    set_rgb_led( SPI_MASTER_Buffer_Tx , game->player[0].pos ,                 game->player[0].dot_color[0], game->player[0].dot_color[1], game->player[0].dot_color[2]);
+    set_rgb_led( SPI_MASTER_Buffer_Tx , NUMBER_OF_LEDS - game->player[1].pos, game->player[1].dot_color[0], game->player[1].dot_color[1], game->player[1].dot_color[2]);
 }
 
+
+//prüft ob im moment eine kollision vorliegt
 void check_collision(sGame *game)
 {
     if( abs(game->player[0].pos - (NUMBER_OF_LEDS - game->player[1].pos)) <= 1 )
@@ -133,13 +133,13 @@ void check_collision(sGame *game)
         {
             game->player[1].min_pos += game->score_increase;
             for(int i = game->center ; i < NUMBER_OF_LEDS ; i++)
-                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i   , 100,100,100);
+                set_rgb_led( SPI_MASTER_Buffer_Tx , i   , 100,100,100);
         }
         else
         {
             game->player[0].min_pos += game->score_increase;
             for(int i = 0 ; i < game->center ; i++)
-                set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , i   , 100,100,100);
+                set_rgb_led( SPI_MASTER_Buffer_Tx , i   , 100,100,100);
         }
         game->center= game->init_center + (rand()%20);
         game->mode = 0;
@@ -148,26 +148,30 @@ void check_collision(sGame *game)
     }
 }
 
+//zeigt meta inforamtionen zum spiel an (mitte + center...)
 void update_display(sGame *game)
 {
     if(game->mode == 1)
     {
-        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->center-1 , 20,0,0);
-        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->center+1 , 0,0,20);
+        set_rgb_led( SPI_MASTER_Buffer_Tx , game->center-1 , 20,0,0);
+        set_rgb_led( SPI_MASTER_Buffer_Tx , game->center+1 , 0,0,20);
     }
     else if(game->mode == 2)
     {
-        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->center-1 , 0,0,20);
-        set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->center+1 , 20,0,0);
+        set_rgb_led( SPI_MASTER_Buffer_Tx , game->center-1 , 0,0,20);
+        set_rgb_led( SPI_MASTER_Buffer_Tx , game->center+1 , 20,0,0);
     }
-    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->center , 0,255,0);
+    set_rgb_led( SPI_MASTER_Buffer_Tx , game->center , 0,255,0);
 
-    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->init_center - game->loosing_distance , 20,20,0);
-    set_rgb_led( (uint8_t*)&SPI_MASTER_Buffer_Tx[0] , game->init_center + game->loosing_distance , 20,20,0);
+    set_rgb_led( SPI_MASTER_Buffer_Tx , game->init_center - game->loosing_distance , 20,20,0);
+    set_rgb_led( SPI_MASTER_Buffer_Tx , game->init_center + game->loosing_distance , 20,20,0);
 }
 
+
+//wird alle x sekunden aufgerufen
 void game_round(void)
 {
+    LED_Toggle(1);
     move_player(&game, 0, !Button_GetState(1));
     move_player(&game, 1, !Button_GetState(2));
 

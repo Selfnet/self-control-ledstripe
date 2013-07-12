@@ -9,6 +9,7 @@ OBJS+=syscalls.o
 OBJS+=can.o
 OBJS+=clock.o
 OBJS+=timer.o
+OBJS+=led_functions.o
 OBJS+=game_dotcatching.o
 
 OBJS+=flash_f1.o

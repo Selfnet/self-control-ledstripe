@@ -2,6 +2,8 @@
 #include "stm32f10x.h"
 #include "can.h"
 #include "io-helper.h"
+#include "rgb_led.h"
+#include "game_dotcatching.h"
 
 /**
   * @brief  Configures the CAN.
@@ -124,7 +126,7 @@ void send_pong(CanRxMsg RxMessage)
         CanTxMsg TxMessage;
         TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
         TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
-        TxMessage.ExtId |= setSender( NODE_CAN_ID );
+        TxMessage.ExtId |= setSender( NODE_CAN_ID_LEDSTRIPE );
         TxMessage.ExtId |= setType( CAN_PROTO_PONG );
         TxMessage.ExtId |= setRecipient( getSender(RxMessage.ExtId) );
         TxMessage.RTR = CAN_RTR_Data;                               // daten senden
@@ -147,7 +149,7 @@ uint32_t send_ping(char data)
     CanTxMsg TxMessage;
     TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
     TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
-    TxMessage.ExtId |= setSender( NODE_CAN_ID );
+    TxMessage.ExtId |= setSender( NODE_CAN_ID_LEDSTRIPE );
     TxMessage.ExtId |= setType( CAN_PROTO_PING );
     TxMessage.ExtId |= setRecipient( NODE_CAN_BROADCAST );
     TxMessage.RTR = 0;
@@ -160,7 +162,7 @@ uint32_t send_ping(char data)
 void send_led_msg(char data[8], uint8_t len)
 {
     //              Sender        Empf     Proto    extID    (reverse due to endianess)
-    char extID[] = {NODE_CAN_ID , 0x40   , 0xC0 ,   0x00};
+    char extID[] = {NODE_CAN_ID_LEDSTRIPE , 0x40   , 0xC0 ,   0x00};
 
     //Turn off all leds
     CanTxMsg TxMessage;
@@ -184,7 +186,7 @@ void send_sync(char data)
     CanTxMsg TxMessage;
     TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
     TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
-    TxMessage.ExtId |= setSender( NODE_CAN_ID );
+    TxMessage.ExtId |= setSender( NODE_CAN_ID_LEDSTRIPE );
     TxMessage.ExtId |= setType( CAN_PROTO_SYNC );
     TxMessage.ExtId |= setRecipient( NODE_CAN_BROADCAST );
     TxMessage.RTR = 0;
@@ -206,8 +208,7 @@ void prozess_can_it(void)
     else
     {
         // wenn es nicht von mir kommt
-        if( getRecipient(RxMessage.ExtId) == NODE_CAN_ID || getRecipient(RxMessage.ExtId) == NODE_CAN_BROADCAST )
-        //if( getSender(RxMessage.ExtId) != NODE_CAN_ID ) //wenn man auf alles hören will
+        if( getRecipient(RxMessage.ExtId) == NODE_CAN_ID_LEDSTRIPE || getRecipient(RxMessage.ExtId) == NODE_CAN_BROADCAST )
         {
             //PING
             if( getTyp(RxMessage.ExtId) == CAN_PROTO_PING )
@@ -221,6 +222,44 @@ void prozess_can_it(void)
                     LED_On(2);
                 else
                     LED_Toggle(2);
+            }
+            else if( getTyp(RxMessage.ExtId) == CAN_PROTO_LEDSTRIPE  )
+            {
+                LED_Toggle(1);
+                switch(RxMessage.Data[0])
+                {
+                    //(breaks mit absicht vergessen)
+                    case 0x2: //set led 
+                        ledstripe.pos     = RxMessage.Data[1];
+                    case 0x4: //lauflicht
+                    case 0x5: //alle leds auf diese farbe setzen
+                        ledstripe.mode = RxMessage.Data[0];
+                        ledstripe.data[0] = RxMessage.Data[2];
+                        ledstripe.data[1] = RxMessage.Data[3];
+                        ledstripe.data[2] = RxMessage.Data[4];
+                    break;
+                    case 0x10: //game
+                        if(RxMessage.Data[1] == 0xFF || ledstripe.mode != RxMessage.Data[0])
+                            init_game(&game);
+                        ledstripe.mode = RxMessage.Data[0];
+                        if(RxMessage.Data[1] <= 0x2)
+                            move_player(&game, RxMessage.Data[1], 1);
+
+                    break;
+                    case 0xC0: //timer speed
+                    {
+                        uint32_t t = (RxMessage.Data[1]<<8)+RxMessage.Data[2];
+                        //timer_set(&ledstripe.led_timer, t);
+                        //timer_restart(&ledstripe.led_timer);
+                        //timer_reset(&ledstripe.led_timer);
+                        ledstripe.led_timer.interval = t;
+                        ledstripe.led_timer.start = clock_time();
+                    }
+                    break;
+                    
+                    default:
+                        ledstripe.mode = RxMessage.Data[0];
+                }
             }
         }
     }
